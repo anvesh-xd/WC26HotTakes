@@ -238,13 +238,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* off-screen card captured by html2canvas */}
-      <ShareCard
-        ref={shareRef}
-        name={name}
-        matches={matches}
-        predictions={predictions}
-      />
+      {/* off-screen card captured by html2canvas — only mounted once the user
+          has predictions (it's a heavy, hidden subtree we don't want in the
+          initial paint for first-time visitors) */}
+      {hasPredictions && (
+        <ShareCard
+          ref={shareRef}
+          name={name}
+          matches={matches}
+          predictions={predictions}
+        />
+      )}
 
       {/* sticky CTA */}
       {hasPredictions && (

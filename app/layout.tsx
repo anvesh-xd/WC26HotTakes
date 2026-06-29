@@ -8,25 +8,30 @@ const anton = Anton({
   variable: "--font-anton",
   subsets: ["latin"],
   weight: ["400"],
+  display: "swap",
 });
 
+// Archivo & Fraunces are variable fonts: omitting `weight` loads a single
+// variable file that covers the full weight range, instead of many static
+// weight files — a big reduction in font requests on first load.
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
+  display: "swap",
 });
 
 const dmMono = DM_Mono({
   variable: "--font-dmmono",
   subsets: ["latin"],
   weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -52,8 +57,12 @@ export default function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        {/* Noto Color Emoji is large (~MBs) and only needed to render country
+            flags on platforms without native flag emoji (e.g. Windows).
+            `display=optional` keeps it off the critical render path: the page
+            paints immediately and never blocks/late-swaps on this font. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=optional"
           rel="stylesheet"
         />
       </head>
