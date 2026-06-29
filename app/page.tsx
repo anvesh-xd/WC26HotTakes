@@ -5,6 +5,7 @@ import MatchCard, { type Match } from "@/components/MatchCard";
 import NameInput from "@/components/NameInput";
 import ShareCard from "@/components/ShareCard";
 import StatCounter from "@/components/StatCounter";
+import { trackCardStamped } from "@/lib/analytics";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 
 function dateLabel(utcDate: string): string {
@@ -120,6 +121,7 @@ export default function Home() {
             title: "My World Cup 2026 Picks",
             text: "My World Cup 2026 Round of 32 predictions 🔮",
           });
+          trackCardStamped(predictionCount, "share");
           return;
         } catch (err) {
           // User dismissed the share sheet — that's not a failure.
@@ -136,6 +138,7 @@ export default function Home() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      trackCardStamped(predictionCount, "download");
     } catch (err) {
       console.error("Card export failed:", err);
       alert("Sorry, the card couldn't be generated. Please try again.");

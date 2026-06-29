@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { trackHotTakeAdded } from "@/lib/analytics";
 
 const STORAGE_KEY = "worldcup-hottakes";
 const PERSIST_DEBOUNCE_MS = 300;
@@ -115,14 +116,24 @@ export function useLocalStorage(): UseLocalStorageReturn {
       hotTake?: string
     ) => {
       const trimmed = hotTake?.trim();
-      setPredictionsState((prev) => ({
-        ...prev,
-        [String(matchId)]: {
-          home,
-          away,
-          ...(trimmed ? { hotTake } : {}),
-        },
-      }));
+      const key = String(matchId);
+
+      setPredictionsState((prev) => {
+        const hadHotTake = Boolean(prev[key]?.hotTake?.trim());
+
+        if (trimmed && !hadHotTake) {
+          trackHotTakeAdded(matchId);
+        }
+
+        return {
+          ...prev,
+          [key]: {
+            home,
+            away,
+            ...(trimmed ? { hotTake } : {}),
+          },
+        };
+      });
     },
     []
   );

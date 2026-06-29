@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { trackFirstPredictionOnce } from "@/lib/analytics";
 import { getFlag } from "@/lib/flags";
 import { gradePrediction, type PredictionGrade } from "@/lib/scoring";
 import type { Prediction } from "@/lib/useLocalStorage";
@@ -112,6 +113,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
       );
 
       if (nextHome !== "" && nextAway !== "") {
+        trackFirstPredictionOnce();
         setSaved(true);
         if (savedTimer.current) clearTimeout(savedTimer.current);
         savedTimer.current = setTimeout(() => setSaved(false), 1500);
