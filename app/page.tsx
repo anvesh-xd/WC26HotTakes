@@ -88,6 +88,32 @@ export default function Home() {
       );
       if (!blob) throw new Error("Could not generate image");
 
+      const file = new File([blob], "worldcup-picks.png", {
+        type: "image/png",
+      });
+
+      // On mobile, prefer the native share sheet — it lets the user save
+      // straight to Photos or post directly to social apps. Desktop browsers
+      // generally can't share files, so they fall through to a download.
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: "My World Cup 2026 Picks",
+            text: "My World Cup 2026 Round of 32 predictions 🔮",
+          });
+          return;
+        } catch (err) {
+          // User dismissed the share sheet — that's not a failure.
+          if ((err as Error)?.name === "AbortError") return;
+          // Any other error: fall through to the download fallback.
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -97,7 +123,7 @@ export default function Home() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Card download failed:", err);
+      console.error("Card export failed:", err);
       alert("Sorry, the card couldn't be generated. Please try again.");
     } finally {
       setDownloading(false);
