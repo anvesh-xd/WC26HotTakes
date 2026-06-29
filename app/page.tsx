@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MatchCard, { type Match } from "@/components/MatchCard";
 import NameInput from "@/components/NameInput";
 import ShareCard from "@/components/ShareCard";
@@ -45,6 +45,13 @@ export default function Home() {
     "loading"
   );
 
+  const handlePredict = useCallback(
+    (matchId: number, home: number, away: number, hotTake: string) => {
+      setPrediction(matchId, home, away, hotTake);
+    },
+    [setPrediction]
+  );
+
   useEffect(() => {
     let active = true;
     fetch("/api/matches")
@@ -74,6 +81,13 @@ export default function Home() {
 
   async function handleDownload() {
     if (!shareRef.current) return;
+
+    // Blur any focused input so pending debounced saves flush before capture.
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
     setDownloading(true);
     try {
       const html2canvas = (await import("html2canvas")).default;
@@ -227,9 +241,7 @@ export default function Home() {
                     key={match.id}
                     match={match}
                     prediction={predictions[String(match.id)]}
-                    onPredict={(home, away, hotTake) =>
-                      setPrediction(match.id, home, away, hotTake)
-                    }
+                    onPredict={handlePredict}
                   />
                 ))}
               </div>

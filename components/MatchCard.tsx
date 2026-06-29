@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { getFlag } from "@/lib/flags";
 import { gradePrediction, type PredictionGrade } from "@/lib/scoring";
 import type { Prediction } from "@/lib/useLocalStorage";
@@ -17,6 +17,7 @@ export interface Match {
 }
 
 const MAX_HOT_TAKE = 140;
+const SAVE_DEBOUNCE_MS = 300;
 
 const GRADE_BADGE: Record<
   PredictionGrade,
@@ -34,7 +35,12 @@ const GRADE_BADGE: Record<
 interface MatchCardProps {
   match: Match;
   prediction?: Prediction;
-  onPredict: (home: number, away: number, hotTake: string) => void;
+  onPredict: (
+    matchId: number,
+    home: number,
+    away: number,
+    hotTake: string
+  ) => void;
 }
 
 // Renders kickoff in the viewer's own locale + timezone, with the local zone
@@ -51,11 +57,7 @@ function sanitize(raw: string): string {
   return raw.replace(/[^0-9]/g, "").slice(0, 2);
 }
 
-export default function MatchCard({
-  match,
-  prediction,
-  onPredict,
-}: MatchCardProps) {
+function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const isFinished = match.status === "FINISHED";
   const isLive = match.status === "IN_PLAY";
   const isLocked = isFinished || isLive;
@@ -64,43 +66,94 @@ export default function MatchCard({
   const [away, setAway] = useState(prediction ? String(prediction.away) : "");
   const [hotTake, setHotTake] = useState(prediction?.hotTake ?? "");
   const [saved, setSaved] = useState(false);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRef = useRef({ home, away, hotTake });
+  draftRef.current = { home, away, hotTake };
+
+  const onPredictRef = useRef(onPredict);
+  onPredictRef.current = onPredict;
 
   useEffect(() => {
     setHome(prediction ? String(prediction.home) : "");
     setAway(prediction ? String(prediction.away) : "");
     setHotTake(prediction?.hotTake ?? "");
+    draftRef.current = {
+      home: prediction ? String(prediction.home) : "",
+      away: prediction ? String(prediction.away) : "",
+      hotTake: prediction?.hotTake ?? "",
+    };
   }, [prediction?.home, prediction?.away, prediction?.hotTake]);
 
   useEffect(() => {
     return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        const { home: h, away: a, hotTake: t } = draftRef.current;
+        onPredictRef.current(
+          match.id,
+          h === "" ? 0 : parseInt(h, 10),
+          a === "" ? 0 : parseInt(a, 10),
+          t
+        );
+      }
       if (savedTimer.current) clearTimeout(savedTimer.current);
     };
-  }, []);
+  }, [match.id]);
 
-  function save(nextHome: string, nextAway: string, nextHotTake: string) {
-    onPredict(
-      nextHome === "" ? 0 : parseInt(nextHome, 10),
-      nextAway === "" ? 0 : parseInt(nextAway, 10),
-      nextHotTake
-    );
-  }
+  const pushToParent = useCallback(
+    (nextHome: string, nextAway: string, nextHotTake: string) => {
+      onPredictRef.current(
+        match.id,
+        nextHome === "" ? 0 : parseInt(nextHome, 10),
+        nextAway === "" ? 0 : parseInt(nextAway, 10),
+        nextHotTake
+      );
 
-  function commit(nextHome: string, nextAway: string) {
+      if (nextHome !== "" && nextAway !== "") {
+        setSaved(true);
+        if (savedTimer.current) clearTimeout(savedTimer.current);
+        savedTimer.current = setTimeout(() => setSaved(false), 1500);
+      }
+    },
+    [match.id]
+  );
+
+  const flushSave = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const { home: h, away: a, hotTake: t } = draftRef.current;
+    pushToParent(h, a, t);
+  }, [pushToParent]);
+
+  const scheduleSave = useCallback(
+    (nextHome: string, nextAway: string, nextHotTake: string) => {
+      draftRef.current = {
+        home: nextHome,
+        away: nextAway,
+        hotTake: nextHotTake,
+      };
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        saveTimer.current = null;
+        pushToParent(nextHome, nextAway, nextHotTake);
+      }, SAVE_DEBOUNCE_MS);
+    },
+    [pushToParent]
+  );
+
+  function commitScores(nextHome: string, nextAway: string) {
     setHome(nextHome);
     setAway(nextAway);
-    save(nextHome, nextAway, hotTake);
-
-    if (nextHome !== "" && nextAway !== "") {
-      setSaved(true);
-      if (savedTimer.current) clearTimeout(savedTimer.current);
-      savedTimer.current = setTimeout(() => setSaved(false), 1500);
-    }
+    scheduleSave(nextHome, nextAway, hotTake);
   }
 
   function commitHotTake(next: string) {
     setHotTake(next);
-    save(home, away, next);
+    scheduleSave(home, away, next);
   }
 
   const counterColor =
@@ -197,7 +250,8 @@ export default function MatchCard({
                 aria-label={`${match.homeTeam ?? "Home"} score`}
                 value={home}
                 onKeyDown={blockNegativeKeys}
-                onChange={(e) => commit(sanitize(e.target.value), away)}
+                onChange={(e) => commitScores(sanitize(e.target.value), away)}
+                onBlur={flushSave}
                 className="score-input"
               />
               <span
@@ -213,7 +267,8 @@ export default function MatchCard({
                 aria-label={`${match.awayTeam ?? "Away"} score`}
                 value={away}
                 onKeyDown={blockNegativeKeys}
-                onChange={(e) => commit(home, sanitize(e.target.value))}
+                onChange={(e) => commitScores(home, sanitize(e.target.value))}
+                onBlur={flushSave}
                 className="score-input"
               />
               {saved && (
@@ -246,6 +301,7 @@ export default function MatchCard({
             maxLength={MAX_HOT_TAKE}
             value={hotTake}
             onChange={(e) => commitHotTake(e.target.value)}
+            onBlur={flushSave}
             placeholder="Your hot take..."
             aria-label="Your hot take"
             className="hot-take-input"
@@ -271,3 +327,19 @@ export default function MatchCard({
     </div>
   );
 }
+
+export default memo(MatchCard, (prev, next) => {
+  return (
+    prev.match.id === next.match.id &&
+    prev.match.status === next.match.status &&
+    prev.match.utcDate === next.match.utcDate &&
+    prev.match.homeTeam === next.match.homeTeam &&
+    prev.match.awayTeam === next.match.awayTeam &&
+    prev.match.score.home === next.match.score.home &&
+    prev.match.score.away === next.match.score.away &&
+    prev.prediction?.home === next.prediction?.home &&
+    prev.prediction?.away === next.prediction?.away &&
+    prev.prediction?.hotTake === next.prediction?.hotTake &&
+    prev.onPredict === next.onPredict
+  );
+});

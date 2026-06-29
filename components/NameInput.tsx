@@ -1,11 +1,13 @@
 "use client";
 
+import { memo } from "react";
+
 interface NameInputProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-export default function NameInput({ value, onChange }: NameInputProps) {
+function NameInput({ value, onChange }: NameInputProps) {
   return (
     <div className="float-field">
       <input
@@ -20,3 +22,5 @@ export default function NameInput({ value, onChange }: NameInputProps) {
     </div>
   );
 }
+
+export default memo(NameInput);
