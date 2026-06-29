@@ -4,7 +4,7 @@ import { gradePrediction, type PredictionGrade } from "@/lib/scoring";
 import type { Match } from "@/components/MatchCard";
 import type { Predictions } from "@/lib/useLocalStorage";
 
-const SITE_URL = "wc26hottakes.vercel.app";
+const SITE_URL = "wc26hottakes.com";
 const EMOJI_FONT = '"Noto Color Emoji", sans-serif';
 const DISPLAY = "var(--font-anton), 'Arial Narrow', sans-serif";
 const SERIF = "var(--font-fraunces), Georgia, serif";
