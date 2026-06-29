@@ -1,26 +1,485 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: #f2e9d5;
+  --color-stock: #fbf6ea;
+  --color-ink: #1b1a17;
+  --color-flame: #e8431f;
+  --color-cobalt: #15485c;
+  --color-gold: #c8881a;
+  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-dmmono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Print-almanac palette */
+  --bg: #f2e9d5; /* cream newsprint */
+  --card: #fbf6ea; /* card stock */
+  --pill: #f4ecd9; /* input fill */
+  --ink: #1b1a17; /* near-black ink */
+  --text: #1b1a17;
+  --muted: #6f6555; /* soft ink */
+  --flame: #e8431f; /* dominant accent */
+  --pitch: #e8431f; /* accent alias used across components */
+  --cobalt: #15485c;
+  --gold: #c8881a;
+  --paper-light: #fff7ec;
+  --border: rgba(27, 26, 23, 0.16);
+  --ink-hard: #1b1a17;
+  --input-border: #1b1a17;
+  --radius-card: 3px;
+  --radius-input: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  /* halftone dot texture */
+  background-image: radial-gradient(
+    rgba(27, 26, 23, 0.06) 1px,
+    transparent 1.3px
+  );
+  background-size: 13px 13px;
+}
+
+/* warm overprint wash for depth */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+      ellipse at 50% -8%,
+      rgba(232, 67, 31, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      rgba(21, 72, 92, 0.1),
+      transparent 50%
+    );
+  mix-blend-mode: multiply;
+}
+
+/* ---- Typography helpers -------------------------------------------- */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.92;
+}
+
+.serif-it {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+.meta {
+  font-family: var(--font-body);
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.meta-accent {
+  color: var(--flame);
+}
+
+/* force color emoji for flags (Windows ships no country-flag glyphs) */
+.flag {
+  font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji",
+    sans-serif;
+  line-height: 1;
+}
+
+/* ---- Hero ---------------------------------------------------------- */
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--flame);
+  color: var(--paper-light);
+  border: 2px solid var(--ink);
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transform: rotate(-1.6deg);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.watermark {
+  position: absolute;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--flame);
+  opacity: 0.07;
+  line-height: 0.8;
+  pointer-events: none;
+  user-select: none;
+}
+
+.masthead-rule {
+  border: none;
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  height: 5px;
+}
+
+/* wax-seal style prediction counter */
+.stat-circle {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 4px var(--card), 0 0 0 6px var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-6deg);
+  animation: stampIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: 0.35s;
+}
+
+/* ---- Floating-label name field ------------------------------------- */
+
+.float-field {
+  position: relative;
+}
+
+.float-field input {
+  width: 100%;
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-input);
+  padding: 1.55rem 1rem 0.6rem;
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  outline: none;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.float-field input:focus {
+  box-shadow: 3px 3px 0 var(--flame);
+  transform: translate(-1px, -1px);
+}
+
+.float-field label {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  pointer-events: none;
+  transition: all 0.18s ease;
+}
+
+.float-field input:focus + label,
+.float-field input:not(:placeholder-shown) + label {
+  top: 0.5rem;
+  transform: translateY(0);
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--flame);
+}
+
+/* ---- Section divider (newspaper rule) ------------------------------ */
+
+.date-label {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+  white-space: nowrap;
+  padding: 0 0.25rem;
+}
+
+.rule-line {
+  flex: 1;
+  height: 3px;
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+/* ---- Badges -------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  padding: 0.16rem 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.badge-final {
+  background: var(--card);
+  color: var(--ink);
+}
+
+.badge-live {
+  background: var(--flame);
+  color: var(--paper-light);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--paper-light);
+  animation: pulseDot 1.1s ease-in-out infinite;
+}
+
+/* ---- Match card (ticket stub) -------------------------------------- */
+
+.match-card {
+  position: relative;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-card);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) {
+  .match-card:hover {
+    transform: translate(-2px, -2px) rotate(-0.35deg);
+    box-shadow: 7px 7px 0 var(--flame);
+  }
+}
+
+.match-card.is-saved {
+  box-shadow: 4px 4px 0 var(--flame);
+}
+
+/* exact-score match: subtle green tint on the card border */
+.match-card.is-exact {
+  border-color: #3ddb82;
+  box-shadow: 4px 4px 0 rgba(61, 219, 130, 0.55);
+}
+
+/* ---- Score stamps -------------------------------------------------- */
+
+.score-input {
+  width: 56px;
+  height: 56px;
+  background: var(--pill);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-input);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--ink);
+  outline: none;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.score-input:focus {
+  background: var(--flame);
+  color: var(--paper-light);
+  transform: translateY(-2px);
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.score-result {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+/* ---- Hot take (typewritten fill-in line) --------------------------- */
+
+.hot-take-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px dashed var(--border);
+  border-radius: 0;
+  padding: 0.5rem 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.hot-take-input::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.hot-take-input:focus {
+  border-bottom-style: solid;
+  border-bottom-color: var(--flame);
+}
+
+/* ---- CTA (poster button) ------------------------------------------- */
+
+.cta-bar {
+  animation: slideUp 0.3s ease;
+}
+
+.cta-button {
+  background: var(--flame);
+  color: var(--paper-light);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-input);
+  padding: 0.8rem 2rem;
+  box-shadow: 5px 5px 0 var(--ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cta-button:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.cta-button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.cta-button:disabled {
+  opacity: 0.7;
+}
+
+/* ---- Keyframes ----------------------------------------------------- */
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: rotate(-6deg) scale(1.55);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes checkFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.check-saved {
+  animation: checkFade 1.5s ease forwards;
+}
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal,
+.animate-fade-up {
+  opacity: 0;
+  animation: revealUp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+  }
 }

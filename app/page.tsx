@@ -1,65 +1,240 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import MatchCard, { type Match } from "@/components/MatchCard";
+import NameInput from "@/components/NameInput";
+import ShareCard from "@/components/ShareCard";
+import StatCounter from "@/components/StatCounter";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+
+function dateLabel(utcDate: string): string {
+  return new Date(utcDate).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+interface DateGroup {
+  label: string;
+  matches: Match[];
+}
+
+function groupByDate(matches: Match[]): DateGroup[] {
+  const sorted = [...matches].sort(
+    (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()
+  );
+
+  const groups: DateGroup[] = [];
+  for (const match of sorted) {
+    const label = dateLabel(match.utcDate);
+    const existing = groups[groups.length - 1];
+    if (existing && existing.label === label) {
+      existing.matches.push(match);
+    } else {
+      groups.push({ label, matches: [match] });
+    }
+  }
+  return groups;
+}
 
 export default function Home() {
+  const { name, setName, predictions, setPrediction } = useLocalStorage();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading"
+  );
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/matches")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
+      .then((data: { matches: Match[] }) => {
+        if (!active) return;
+        setMatches(data.matches ?? []);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const groups = useMemo(() => groupByDate(matches), [matches]);
+  const predictionCount = Object.keys(predictions).length;
+  const hasPredictions = predictionCount > 0;
+
+  const shareRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    if (!shareRef.current) return;
+    setDownloading(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(shareRef.current, {
+        backgroundColor: "#F2E9D5",
+        scale: 2,
+        useCORS: true,
+      });
+
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/png")
+      );
+      if (!blob) throw new Error("Could not generate image");
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "worldcup-picks.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Card download failed:", err);
+      alert("Sorry, the card couldn't be generated. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-full pb-32">
+      {/* hero / masthead */}
+      <section className="relative w-full overflow-hidden">
+        <span className="watermark right-[-2rem] top-[-3rem] text-[12rem] sm:text-[18rem]">
+          26
+        </span>
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start gap-10 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-16">
+          <div className="max-w-lg">
+            <p
+              className="reveal serif-it text-lg text-[var(--cobalt)]"
+              style={{ animationDelay: "0s" }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              The Matchday Almanac
+            </p>
+            <span
+              className="kicker reveal mt-3"
+              style={{ animationDelay: "0.08s" }}
             >
-              Learning
-            </a>{" "}
-            center.
+              ★ FIFA World Cup 2026
+            </span>
+            <h1
+              className="display reveal mt-5 text-[3rem] sm:text-[4.75rem]"
+              style={{ animationDelay: "0.16s" }}
+            >
+              Make Your
+              <br />
+              <span className="text-[var(--flame)]">Predictions</span>
+            </h1>
+            <p
+              className="reveal serif-it mt-4 text-lg text-[var(--muted)]"
+              style={{ animationDelay: "0.24s" }}
+            >
+              Pick the score for every Round of 32 fixture. Stamp your card.
+              Share it.
+            </p>
+          </div>
+
+          <div className="stat-circle shrink-0">
+            <span className="font-mono text-[2.75rem] font-medium leading-none text-[var(--flame)]">
+              <StatCounter value={predictionCount} />
+            </span>
+            <span className="meta mt-1 max-w-[84px] text-center leading-tight">
+              Picks Logged
+            </span>
+          </div>
+        </div>
+        <hr className="masthead-rule mx-auto max-w-3xl" />
+      </section>
+
+      <div className="mx-auto w-full max-w-3xl px-4">
+        {/* name input */}
+        <div className="-mt-2 mb-10">
+          <NameInput value={name} onChange={setName} />
+        </div>
+
+        {/* feed states */}
+        {status === "loading" && (
+          <p className="meta py-8 text-center">Loading fixtures…</p>
+        )}
+
+        {status === "error" && (
+          <div className="match-card p-5">
+            <p className="text-lg font-bold">Couldn&apos;t load fixtures</p>
+            <p className="mt-1 text-[var(--muted)]">
+              Check that a valid{" "}
+              <code className="text-[var(--pitch)]">FOOTBALL_DATA_API_KEY</code>{" "}
+              is set in <code>.env.local</code>.
+            </p>
+          </div>
+        )}
+
+        {status === "ready" && groups.length === 0 && (
+          <p className="meta py-8 text-center">
+            No Round of 32 fixtures available yet.
           </p>
+        )}
+
+        {/* date groups */}
+        <div className="space-y-10">
+          {groups.map((group, i) => (
+            <section
+              key={group.label}
+              className="animate-fade-up"
+              style={{ animationDelay: `${i * 0.06}s` }}
+            >
+              <div className="mb-4 flex items-center gap-4">
+                <span className="rule-line" />
+                <span className="date-label">{group.label}</span>
+                <span className="rule-line" />
+              </div>
+              <div className="space-y-3">
+                {group.matches.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    prediction={predictions[String(match.id)]}
+                    onPredict={(home, away, hotTake) =>
+                      setPrediction(match.id, home, away, hotTake)
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* off-screen card captured by html2canvas */}
+      <ShareCard
+        ref={shareRef}
+        name={name}
+        matches={matches}
+        predictions={predictions}
+      />
+
+      {/* sticky CTA */}
+      {hasPredictions && (
+        <div className="cta-bar fixed inset-x-0 bottom-0 z-20 border-t-2 border-[var(--ink)] bg-[var(--bg)] px-4 pb-5 pt-4">
+          <div className="mx-auto w-full max-w-[420px]">
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="cta-button w-full"
+            >
+              {downloading ? "Stamping…" : "Stamp My Card"}
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+      )}
+    </main>
   );
 }

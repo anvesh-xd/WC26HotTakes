@@ -1,0 +1,30 @@
+import type { Prediction } from "@/lib/useLocalStorage";
+
+export type PredictionGrade = "exact" | "outcome" | "wrong";
+
+function outcome(home: number, away: number): "home" | "away" | "draw" {
+  if (home > away) return "home";
+  if (away > home) return "away";
+  return "draw";
+}
+
+// Grades a prediction against a finished match's actual score:
+// - "exact":   identical scoreline
+// - "outcome": correct winner or draw, but wrong scoreline
+// - "wrong":   wrong result
+export function gradePrediction(
+  prediction: Prediction,
+  actualHome: number,
+  actualAway: number
+): PredictionGrade {
+  if (prediction.home === actualHome && prediction.away === actualAway) {
+    return "exact";
+  }
+  if (
+    outcome(prediction.home, prediction.away) ===
+    outcome(actualHome, actualAway)
+  ) {
+    return "outcome";
+  }
+  return "wrong";
+}
