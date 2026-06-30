@@ -185,7 +185,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const actualAway = match.score.away;
   const winner =
     isFinished && actualHome != null && actualAway != null
-      ? matchWinner(actualHome, actualAway)
+      ? matchWinner(actualHome, actualAway, match.penalties)
       : null;
   const liveLeader =
     isLive && actualHome != null && actualAway != null

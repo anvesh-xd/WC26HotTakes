@@ -31,12 +31,26 @@ export function gradePrediction(
 
 export type MatchWinner = "home" | "away" | "draw" | null;
 
+export interface PenaltyScore {
+  home: number | null;
+  away: number | null;
+}
+
 export function matchWinner(
   home: number | null,
-  away: number | null
+  away: number | null,
+  penalties?: PenaltyScore | null
 ): MatchWinner {
   if (home == null || away == null) return null;
   if (home > away) return "home";
   if (away > home) return "away";
+
+  const penHome = penalties?.home;
+  const penAway = penalties?.away;
+  if (penHome != null && penAway != null) {
+    if (penHome > penAway) return "home";
+    if (penAway > penHome) return "away";
+  }
+
   return "draw";
 }

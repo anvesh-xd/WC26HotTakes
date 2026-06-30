@@ -147,7 +147,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
             : null;
 
           const winner = isFinished && hasActual
-            ? matchWinner(actualHome, actualAway)
+            ? matchWinner(actualHome, actualAway, match.penalties)
             : null;
           const liveLeader =
             isLive && hasActual ? matchWinner(actualHome, actualAway) : null;
