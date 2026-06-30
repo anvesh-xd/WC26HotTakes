@@ -205,18 +205,35 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
                   {pred.away}
                 </div>
                 {grade && (
-                  <div
-                    style={{
-                      fontFamily: MONO,
-                      fontSize: "12px",
-                      fontWeight: 500,
-                      color: grade.color,
-                      marginTop: "2px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {grade.mark} {actualHome}–{actualAway}
-                  </div>
+                  <>
+                    <div
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        color: grade.color,
+                        marginTop: "2px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {grade.mark} {actualHome}–{actualAway}
+                    </div>
+                    {match.penalties?.home != null &&
+                      match.penalties?.away != null && (
+                        <div
+                          style={{
+                            fontFamily: MONO,
+                            fontSize: "10px",
+                            fontWeight: 500,
+                            color: COLORS.muted,
+                            marginTop: "1px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          pens {match.penalties.home}–{match.penalties.away}
+                        </div>
+                      )}
+                  </>
                 )}
               </div>
 

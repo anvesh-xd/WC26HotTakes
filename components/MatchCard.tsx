@@ -15,6 +15,8 @@ export interface Match {
   homeTeam: string | null;
   awayTeam: string | null;
   score: { home: number | null; away: number | null };
+  penalties?: { home: number | null; away: number | null } | null;
+  scoreDuration?: "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT" | null;
 }
 
 const MAX_HOT_TAKE = 140;
@@ -26,7 +28,7 @@ const GRADE_BADGE: Record<
 > = {
   exact: { label: "✓ Exact Score", bg: "rgba(61,219,130,0.12)", color: "#3DDB82" },
   outcome: {
-    label: "~ Correct Result",
+    label: "~ Correct Winner",
     bg: "rgba(245,200,66,0.12)",
     color: "#F5C842",
   },
@@ -242,6 +244,16 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
                   You predicted: {prediction.home} – {prediction.away}
                 </span>
               )}
+              {isFinished &&
+                match.penalties?.home != null &&
+                match.penalties?.away != null && (
+                  <span
+                    className="text-[0.62rem] font-medium uppercase tracking-wide"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    Pens {match.penalties.home}–{match.penalties.away}
+                  </span>
+                )}
             </div>
           ) : (
             <>
@@ -339,6 +351,9 @@ export default memo(MatchCard, (prev, next) => {
     prev.match.awayTeam === next.match.awayTeam &&
     prev.match.score.home === next.match.score.home &&
     prev.match.score.away === next.match.score.away &&
+    prev.match.penalties?.home === next.match.penalties?.home &&
+    prev.match.penalties?.away === next.match.penalties?.away &&
+    prev.match.scoreDuration === next.match.scoreDuration &&
     prev.prediction?.home === next.prediction?.home &&
     prev.prediction?.away === next.prediction?.away &&
     prev.prediction?.hotTake === next.prediction?.hotTake &&

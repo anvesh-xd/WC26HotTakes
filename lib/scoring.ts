@@ -8,10 +8,10 @@ function outcome(home: number, away: number): "home" | "away" | "draw" {
   return "draw";
 }
 
-// Grades a prediction against a finished match's actual score:
+// Grades a prediction against a finished match's 90-minute score:
 // - "exact":   identical scoreline
 // - "outcome": correct winner or draw, but wrong scoreline
-// - "wrong":   wrong result
+// - "wrong":   wrong winner / draw
 export function gradePrediction(
   prediction: Prediction,
   actualHome: number,

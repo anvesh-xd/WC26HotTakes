@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 const FOOTBALL_DATA_URL =
   "https://api.football-data.org/v4/competitions/2000/matches?stage=LAST_32";
 
-// Revalidate upstream data every 60s — short enough for live scores, still
-// protects the football-data.org rate limit under traffic spikes.
 export const revalidate = 60;
 
 type MatchStatus = "SCHEDULED" | "TIMED" | "IN_PLAY" | "FINISHED";
+type ScoreDuration = "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT";
 
 interface ScoreLine {
   home: number | null;
@@ -21,9 +20,11 @@ interface FootballDataMatch {
   homeTeam: { name: string | null };
   awayTeam: { name: string | null };
   score: {
+    duration?: ScoreDuration;
     fullTime: ScoreLine;
     halfTime?: ScoreLine;
     regularTime?: ScoreLine;
+    penalties?: ScoreLine;
   };
 }
 
@@ -31,29 +32,67 @@ interface FootballDataResponse {
   matches: FootballDataMatch[];
 }
 
-interface CleanedMatch {
+export interface CleanedMatch {
   id: number;
   utcDate: string;
   status: MatchStatus;
   homeTeam: string | null;
   awayTeam: string | null;
   score: { home: number | null; away: number | null };
+  penalties: { home: number | null; away: number | null } | null;
+  scoreDuration: ScoreDuration | null;
 }
 
-function extractScore(match: FootballDataMatch): ScoreLine {
-  const score = match.score;
-  if (!score) return { home: null, away: null };
+function lineOrNull(line?: ScoreLine | null): ScoreLine | null {
+  if (line?.home == null || line?.away == null) return null;
+  return { home: line.home, away: line.away };
+}
 
-  const lines = [score.fullTime, score.regularTime, score.halfTime];
-  for (const line of lines) {
-    if (line?.home != null && line?.away != null) {
-      return { home: line.home, away: line.away };
+// Predictions are for 90-minute scorelines. Use regularTime when the API
+// provides it (knockout games decided on pens). fullTime often holds pen totals.
+function extractMatchScores(match: FootballDataMatch): {
+  score: ScoreLine;
+  penalties: ScoreLine | null;
+  scoreDuration: ScoreDuration | null;
+} {
+  const score = match.score;
+  if (!score) {
+    return {
+      score: { home: null, away: null },
+      penalties: null,
+      scoreDuration: null,
+    };
+  }
+
+  const scoreDuration = score.duration ?? null;
+  const penalties = lineOrNull(score.penalties);
+
+  if (match.status === "FINISHED") {
+    const regular = lineOrNull(score.regularTime);
+    if (regular) {
+      return { score: regular, penalties, scoreDuration };
+    }
+    const full = lineOrNull(score.fullTime);
+    if (full) {
+      return { score: full, penalties, scoreDuration };
+    }
+  }
+
+  // Live / in-progress: running score from fullTime, then halfTime.
+  for (const line of [score.fullTime, score.halfTime]) {
+    const parsed = lineOrNull(line);
+    if (parsed) {
+      return { score: parsed, penalties, scoreDuration };
     }
   }
 
   return {
-    home: score.fullTime?.home ?? null,
-    away: score.fullTime?.away ?? null,
+    score: {
+      home: score.fullTime?.home ?? null,
+      away: score.fullTime?.away ?? null,
+    },
+    penalties,
+    scoreDuration,
   };
 }
 
@@ -82,7 +121,7 @@ export async function GET() {
   const data: FootballDataResponse = await res.json();
 
   const matches: CleanedMatch[] = (data.matches ?? []).map((match) => {
-    const score = extractScore(match);
+    const { score, penalties, scoreDuration } = extractMatchScores(match);
     return {
       id: match.id,
       utcDate: match.utcDate,
@@ -90,6 +129,8 @@ export async function GET() {
       homeTeam: match.homeTeam?.name ?? null,
       awayTeam: match.awayTeam?.name ?? null,
       score,
+      penalties,
+      scoreDuration,
     };
   });
 
@@ -97,9 +138,7 @@ export async function GET() {
     { matches },
     {
       headers: {
-        // Browsers must not reuse a stale JSON snapshot (fixes stuck predictions UI).
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        // Vercel edge may cache briefly to absorb traffic without hammering upstream.
         "CDN-Cache-Control": "max-age=60, stale-while-revalidate=30",
       },
     }
