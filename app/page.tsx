@@ -111,12 +111,37 @@ export default function Home() {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     setDownloading(true);
+    const el = shareRef.current;
+    const style = el.style;
+    const captureSnapshot = {
+      position: style.position,
+      left: style.left,
+      top: style.top,
+      visibility: style.visibility,
+      zIndex: style.zIndex,
+      opacity: style.opacity,
+    };
+
     try {
+      // html2canvas mis-renders off-screen CSS grid/flex; park in-viewport
+      // invisibly so layout is calculated before capture.
+      style.position = "fixed";
+      style.left = "0";
+      style.top = "0";
+      style.visibility = "hidden";
+      style.opacity = "0";
+      style.zIndex = "-1";
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(shareRef.current, {
+      const isWide = el.offsetWidth > 700;
+      const canvas = await html2canvas(el, {
         backgroundColor: "#F2E9D5",
-        scale: 2,
+        scale: isWide ? 1.5 : 2,
         useCORS: true,
+        logging: false,
       });
 
       const blob: Blob | null = await new Promise((resolve) =>
@@ -128,26 +153,38 @@ export default function Home() {
         type: "image/png",
       });
 
-      // On mobile, prefer the native share sheet — it lets the user save
-      // straight to Photos or post directly to social apps. Desktop browsers
-      // generally can't share files, so they fall through to a download.
-      if (
+      const sharePayload = {
+        files: [file],
+        title: "My World Cup 2026 Picks",
+        text: "My World Cup 2026 Round of 32 predictions 🔮",
+      };
+
+      // Prefer native share on phones/tablets. Skip canShare when absent;
+      // on some devices canShare returns false for large PNGs even though
+      // share() still works.
+      const isMobileShare =
         typeof navigator !== "undefined" &&
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] })
-      ) {
+        typeof navigator.share === "function" &&
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+      if (isMobileShare) {
         try {
-          await navigator.share({
-            files: [file],
-            title: "My World Cup 2026 Picks",
-            text: "My World Cup 2026 Round of 32 predictions 🔮",
-          });
+          await navigator.share(sharePayload);
           trackCardStamped(predictionCount, "share");
           return;
         } catch (err) {
-          // User dismissed the share sheet — that's not a failure.
           if ((err as Error)?.name === "AbortError") return;
-          // Any other error: fall through to the download fallback.
+        }
+      } else if (
+        typeof navigator.share === "function" &&
+        (!navigator.canShare || navigator.canShare(sharePayload))
+      ) {
+        try {
+          await navigator.share(sharePayload);
+          trackCardStamped(predictionCount, "share");
+          return;
+        } catch (err) {
+          if ((err as Error)?.name === "AbortError") return;
         }
       }
 
@@ -164,6 +201,7 @@ export default function Home() {
       console.error("Card export failed:", err);
       alert("Sorry, the card couldn't be generated. Please try again.");
     } finally {
+      Object.assign(style, captureSnapshot);
       setDownloading(false);
     }
   }

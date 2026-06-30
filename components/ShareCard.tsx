@@ -279,7 +279,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
         position: "absolute",
         left: "-9999px",
         top: 0,
-        width: useTwoColumns ? "920px" : "680px",
+        width: useTwoColumns ? "900px" : "680px",
         backgroundColor: COLORS.paper,
         color: COLORS.ink,
         fontFamily: BODY,
@@ -341,30 +341,54 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
       </div>
 
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: useTwoColumns ? "1fr 1fr" : "1fr",
-          gap: useTwoColumns ? "14px" : "10px",
-          alignItems: "start",
-        }}
+        style={
+          useTwoColumns
+            ? {
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: "14px",
+              }
+            : {
+                display: "block",
+              }
+        }
       >
         {columns.map((columnMatches, columnIndex) => (
           <div
             key={columnIndex}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
-              gap: useTwoColumns ? "8px" : "10px",
-            }}
+            style={
+              useTwoColumns
+                ? {
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    width: "408px",
+                    backgroundColor: COLORS.stock,
+                    border: `2px solid ${COLORS.ink}`,
+                    borderRadius: "3px",
+                    boxShadow: `3px 3px 0 ${COLORS.ink}`,
+                    padding: "12px",
+                    boxSizing: "border-box",
+                  }
+                : { display: "block" }
+            }
           >
-            {columnMatches.map((match) => (
-              <MatchFixtureCard
-                key={match.id}
-                match={match}
-                pred={predictions[String(match.id)]}
-                compact={useTwoColumns}
-              />
-            ))}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: useTwoColumns ? "8px" : "10px",
+              }}
+            >
+              {columnMatches.map((match) => (
+                <MatchFixtureCard
+                  key={match.id}
+                  match={match}
+                  pred={predictions[String(match.id)]}
+                  compact={useTwoColumns}
+                />
+              ))}
+            </div>
           </div>
         ))}
       </div>
