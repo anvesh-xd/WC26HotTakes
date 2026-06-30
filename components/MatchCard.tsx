@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { trackFirstPredictionOnce } from "@/lib/analytics";
 import { getFlag } from "@/lib/flags";
-import { gradePrediction, type PredictionGrade } from "@/lib/scoring";
+import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
 import type { Prediction } from "@/lib/useLocalStorage";
 
 export type MatchStatus = "SCHEDULED" | "TIMED" | "IN_PLAY" | "FINISHED";
@@ -181,6 +181,22 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
       : null;
   const gradeBadge = grade ? GRADE_BADGE[grade] : null;
 
+  const actualHome = match.score.home;
+  const actualAway = match.score.away;
+  const winner =
+    isFinished && actualHome != null && actualAway != null
+      ? matchWinner(actualHome, actualAway)
+      : null;
+  const liveLeader =
+    isLive && actualHome != null && actualAway != null
+      ? matchWinner(actualHome, actualAway)
+      : null;
+
+  const hasPens =
+    match.penalties?.home != null && match.penalties?.away != null;
+  const showFooter =
+    !isLocked || (isFinished && (prediction != null || hasPens));
+
   return (
     <div
       className={`match-card p-4 sm:p-5 ${
@@ -214,130 +230,138 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
         {!isLocked && <span className="meta">{kickoffTime(match.utcDate)}</span>}
       </div>
 
-      {/* middle row: team | score | team */}
-      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-4">
+      {/* vertical scoreboard: team (score) per row */}
+      <div className="fixture-rows">
         {/* home */}
-        <div className="flex items-center justify-center gap-2 sm:justify-end">
-          <span className="text-sm font-extrabold uppercase leading-tight tracking-tight sm:text-base">
-            {match.homeTeam ?? "TBD"}
+        <div
+          className={`fixture-row ${winner === "home" ? "is-winner" : ""}`}
+        >
+          <span className="fixture-tick" aria-hidden>
+            {winner === "home" ? "✓" : ""}
           </span>
           <span className="flag text-2xl">{getFlag(match.homeTeam)}</span>
-        </div>
-
-        {/* center */}
-        <div className="relative flex items-center justify-center gap-2">
+          <span className="fixture-team">{match.homeTeam ?? "TBD"}</span>
           {isLocked ? (
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className="score-result flex items-center gap-2"
-                style={{ color: scoreColor }}
-              >
-                <span>{match.score.home ?? 0}</span>
-                <span style={{ color: "var(--muted)" }}>–</span>
-                <span>{match.score.away ?? 0}</span>
-              </div>
-              {isFinished && prediction && (
-                <span
-                  className="text-[0.66rem] font-medium uppercase tracking-wide"
-                  style={{ color: "var(--muted)" }}
-                >
-                  You predicted: {prediction.home} – {prediction.away}
-                </span>
-              )}
-              {isFinished &&
-                match.penalties?.home != null &&
-                match.penalties?.away != null && (
-                  <span
-                    className="text-[0.62rem] font-medium uppercase tracking-wide"
-                    style={{ color: "var(--muted)" }}
-                  >
-                    Pens {match.penalties.home}–{match.penalties.away}
-                  </span>
-                )}
-            </div>
+            <span
+              className="score-result-sm"
+              style={{
+                color:
+                  winner === "home"
+                    ? scoreColor
+                    : liveLeader === "home"
+                      ? "var(--flame)"
+                      : scoreColor,
+              }}
+            >
+              {actualHome ?? 0}
+            </span>
           ) : (
-            <>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                aria-label={`${match.homeTeam ?? "Home"} score`}
-                value={home}
-                onKeyDown={blockNegativeKeys}
-                onChange={(e) => commitScores(sanitize(e.target.value), away)}
-                onBlur={flushSave}
-                className="score-input"
-              />
-              <span
-                className="text-xl font-extrabold"
-                style={{ color: "var(--muted)" }}
-              >
-                –
-              </span>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                aria-label={`${match.awayTeam ?? "Away"} score`}
-                value={away}
-                onKeyDown={blockNegativeKeys}
-                onChange={(e) => commitScores(home, sanitize(e.target.value))}
-                onBlur={flushSave}
-                className="score-input"
-              />
-              {saved && (
-                <span
-                  className="check-saved absolute -right-5 text-lg font-bold"
-                  style={{ color: "var(--pitch)" }}
-                  aria-hidden
-                >
-                  ✓
-                </span>
-              )}
-            </>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              aria-label={`${match.homeTeam ?? "Home"} score`}
+              value={home}
+              onKeyDown={blockNegativeKeys}
+              onChange={(e) => commitScores(sanitize(e.target.value), away)}
+              onBlur={flushSave}
+              className="score-input score-input-inline"
+            />
           )}
         </div>
 
         {/* away */}
-        <div className="flex items-center justify-center gap-2 sm:justify-start">
-          <span className="flag text-2xl">{getFlag(match.awayTeam)}</span>
-          <span className="text-sm font-extrabold uppercase leading-tight tracking-tight sm:text-base">
-            {match.awayTeam ?? "TBD"}
+        <div
+          className={`fixture-row ${winner === "away" ? "is-winner" : ""}`}
+        >
+          <span className="fixture-tick" aria-hidden>
+            {winner === "away" ? "✓" : ""}
           </span>
+          <span className="flag text-2xl">{getFlag(match.awayTeam)}</span>
+          <span className="fixture-team">{match.awayTeam ?? "TBD"}</span>
+          {isLocked ? (
+            <span
+              className="score-result-sm"
+              style={{
+                color:
+                  winner === "away"
+                    ? scoreColor
+                    : liveLeader === "away"
+                      ? "var(--flame)"
+                      : scoreColor,
+              }}
+            >
+              {actualAway ?? 0}
+            </span>
+          ) : (
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              aria-label={`${match.awayTeam ?? "Away"} score`}
+              value={away}
+              onKeyDown={blockNegativeKeys}
+              onChange={(e) => commitScores(home, sanitize(e.target.value))}
+              onBlur={flushSave}
+              className="score-input score-input-inline"
+            />
+          )}
         </div>
       </div>
 
-      {/* hot take input for upcoming matches */}
-      {!isLocked && (
-        <div className="mt-4">
-          <input
-            type="text"
-            maxLength={MAX_HOT_TAKE}
-            value={hotTake}
-            onChange={(e) => commitHotTake(e.target.value)}
-            onBlur={flushSave}
-            placeholder="Your hot take..."
-            aria-label="Your hot take"
-            className="hot-take-input"
-          />
-          <div
-            className="mt-1 text-right text-xs font-medium"
-            style={{ color: counterColor }}
-          >
-            {hotTake.length}/{MAX_HOT_TAKE}
-          </div>
-        </div>
-      )}
-
-      {/* submitted hot take on finished matches */}
-      {isFinished && prediction?.hotTake && (
-        <p
-          className="mt-3 text-center text-sm italic"
-          style={{ color: "var(--muted)" }}
-        >
-          “{prediction.hotTake}”
-        </p>
-      )}
+      {/* predictions, pens, hot take */}
+      {showFooter ? (
+      <div className="fixture-footer">
+        {isFinished && prediction && (
+          <span className="fixture-meta">
+            You predicted: {prediction.home} – {prediction.away}
+          </span>
+        )}
+        {isFinished &&
+          hasPens && (
+            <span className="fixture-meta">
+              Pens {match.penalties!.home}–{match.penalties!.away}
+            </span>
+          )}
+        {!isLocked && (
+          <>
+            <input
+              type="text"
+              maxLength={MAX_HOT_TAKE}
+              value={hotTake}
+              onChange={(e) => commitHotTake(e.target.value)}
+              onBlur={flushSave}
+              placeholder="Your hot take..."
+              aria-label="Your hot take"
+              className="hot-take-input"
+            />
+            <div
+              className="flex items-center justify-between"
+            >
+              {saved ? (
+                <span
+                  className="text-xs font-bold"
+                  style={{ color: "var(--pitch)" }}
+                >
+                  ✓ Saved
+                </span>
+              ) : (
+                <span />
+              )}
+              <span
+                className="text-xs font-medium"
+                style={{ color: counterColor }}
+              >
+                {hotTake.length}/{MAX_HOT_TAKE}
+              </span>
+            </div>
+          </>
+        )}
+        {isFinished && prediction?.hotTake && (
+          <p className="fixture-hot-take">“{prediction.hotTake}”</p>
+        )}
+      </div>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { getFlag } from "@/lib/flags";
-import { gradePrediction, type PredictionGrade } from "@/lib/scoring";
+import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
 import type { Match } from "@/components/MatchCard";
 import type { Predictions } from "@/lib/useLocalStorage";
 
@@ -28,13 +28,16 @@ const COLORS = {
   wrong: "#C0392B",
 };
 
-const GRADE_DISPLAY: Record<
-  PredictionGrade,
-  { mark: string; color: string }
-> = {
-  exact: { mark: "✓", color: "#1f9d57" },
-  outcome: { mark: "~", color: "#b07d12" },
-  wrong: { mark: "✗", color: "#c0392b" },
+const GRADE_DISPLAY_COLOR: Record<PredictionGrade, string> = {
+  exact: "#1f9d57",
+  outcome: "#b07d12",
+  wrong: "#c0392b",
+};
+
+const GRADE_LABEL: Record<PredictionGrade, string> = {
+  exact: "✓ Exact Score",
+  outcome: "~ Correct Winner",
+  wrong: "✗ Wrong",
 };
 
 // Rendered off-screen and captured to PNG by html2canvas. Uses inline hex
@@ -130,15 +133,53 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
         {predicted.map((match) => {
           const pred = predictions[String(match.id)];
           const isFinished = match.status === "FINISHED";
+          const isLive = match.status === "IN_PLAY";
+          const isLocked = isFinished || isLive;
           const actualHome = match.score.home;
           const actualAway = match.score.away;
           const hasActual =
-            isFinished && actualHome !== null && actualAway !== null;
-          const grade = hasActual
-            ? GRADE_DISPLAY[gradePrediction(pred, actualHome, actualAway)]
+            isLocked && actualHome !== null && actualAway !== null;
+          const gradeKey = isFinished && hasActual
+            ? gradePrediction(pred, actualHome, actualAway)
+            : null;
+          const grade = gradeKey
+            ? { label: GRADE_LABEL[gradeKey], color: GRADE_DISPLAY_COLOR[gradeKey] }
             : null;
 
+          const winner = isFinished && hasActual
+            ? matchWinner(actualHome, actualAway)
+            : null;
+          const liveLeader =
+            isLive && hasActual ? matchWinner(actualHome, actualAway) : null;
+          const homeScore = isLocked ? (actualHome ?? 0) : pred.home;
+          const awayScore = isLocked ? (actualAway ?? 0) : pred.away;
           const hotTake = pred.hotTake?.trim();
+          const hasPens =
+            match.penalties?.home != null && match.penalties?.away != null;
+          const showFooter = isFinished || Boolean(hotTake) || hasPens;
+
+          const homeScoreColor = isFinished
+            ? COLORS.gold
+            : isLive
+              ? liveLeader === "home"
+                ? COLORS.flame
+                : "#3DDB82"
+              : COLORS.flame;
+          const awayScoreColor = isFinished
+            ? COLORS.gold
+            : isLive
+              ? liveLeader === "away"
+                ? COLORS.flame
+                : "#3DDB82"
+              : COLORS.flame;
+
+          const rowStyle = {
+            display: "grid",
+            gridTemplateColumns: "18px 28px 1fr auto",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "6px",
+          } as const;
 
           return (
             <div
@@ -151,133 +192,145 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
                 padding: "13px 18px",
               }}
             >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto 1fr",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-              >
-              {/* home */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  gap: "8px",
-                  textAlign: "right",
-                }}
-              >
+              {/* home row */}
+              <div style={rowStyle}>
                 <span
                   style={{
-                    fontSize: "17px",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: COLORS.gold,
+                    textAlign: "center",
+                  }}
+                >
+                  {winner === "home" ? "✓" : ""}
+                </span>
+                <span style={{ fontFamily: EMOJI_FONT, fontSize: "20px" }}>
+                  {getFlag(match.homeTeam)}
+                </span>
+                <span
+                  style={{
+                    fontSize: "15px",
                     fontWeight: 800,
                     textTransform: "uppercase",
                   }}
                 >
                   {match.homeTeam ?? "TBD"}
                 </span>
-                <span style={{ fontFamily: EMOJI_FONT, fontSize: "22px" }}>
-                  {getFlag(match.homeTeam)}
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: "22px",
+                    fontWeight: 500,
+                    color: homeScoreColor,
+                  }}
+                >
+                  {homeScore}
                 </span>
               </div>
 
-              {/* score */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  minWidth: "86px",
-                }}
-              >
-                <div
+              {/* away row */}
+              <div style={{ ...rowStyle, marginBottom: 0 }}>
+                <span
                   style={{
-                    fontFamily: MONO,
-                    fontSize: "26px",
-                    fontWeight: 500,
-                    color: COLORS.flame,
-                    whiteSpace: "nowrap",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: COLORS.gold,
+                    textAlign: "center",
                   }}
                 >
-                  {pred.home} <span style={{ color: COLORS.muted }}>–</span>{" "}
-                  {pred.away}
-                </div>
-                {grade && (
-                  <>
-                    <div
-                      style={{
-                        fontFamily: MONO,
-                        fontSize: "12px",
-                        fontWeight: 500,
-                        color: grade.color,
-                        marginTop: "2px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {grade.mark} {actualHome}–{actualAway}
-                    </div>
-                    {match.penalties?.home != null &&
-                      match.penalties?.away != null && (
-                        <div
-                          style={{
-                            fontFamily: MONO,
-                            fontSize: "10px",
-                            fontWeight: 500,
-                            color: COLORS.muted,
-                            marginTop: "1px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          pens {match.penalties.home}–{match.penalties.away}
-                        </div>
-                      )}
-                  </>
-                )}
-              </div>
-
-              {/* away */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  gap: "8px",
-                  textAlign: "left",
-                }}
-              >
-                <span style={{ fontFamily: EMOJI_FONT, fontSize: "22px" }}>
+                  {winner === "away" ? "✓" : ""}
+                </span>
+                <span style={{ fontFamily: EMOJI_FONT, fontSize: "20px" }}>
                   {getFlag(match.awayTeam)}
                 </span>
                 <span
                   style={{
-                    fontSize: "17px",
+                    fontSize: "15px",
                     fontWeight: 800,
                     textTransform: "uppercase",
                   }}
                 >
                   {match.awayTeam ?? "TBD"}
                 </span>
-              </div>
-              </div>
-
-              {hotTake && (
-                <div
+                <span
                   style={{
-                    marginTop: "10px",
-                    paddingTop: "9px",
-                    borderTop: `1px dashed ${COLORS.muted}`,
-                    fontFamily: SERIF,
-                    fontStyle: "italic",
-                    fontSize: "15px",
-                    color: COLORS.cobalt,
-                    lineHeight: 1.3,
-                    textAlign: "center",
+                    fontFamily: MONO,
+                    fontSize: "22px",
+                    fontWeight: 500,
+                    color: awayScoreColor,
                   }}
                 >
-                  “{hotTake}”
-                </div>
+                  {awayScore}
+                </span>
+              </div>
+
+              {/* footer: prediction, grade, pens, hot take */}
+              {showFooter && (
+              <div
+                style={{
+                  marginTop: "10px",
+                  paddingTop: "9px",
+                  borderTop: `1px dashed ${COLORS.muted}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                }}
+              >
+                {isFinished && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: COLORS.muted,
+                    }}
+                  >
+                    You predicted: {pred.home} – {pred.away}
+                  </span>
+                )}
+                {grade && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: grade.color,
+                    }}
+                  >
+                    {grade.label}
+                  </span>
+                )}
+                {isFinished && hasPens && (
+                    <span
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: "10px",
+                        fontWeight: 500,
+                        color: COLORS.muted,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Pens {match.penalties!.home}–{match.penalties!.away}
+                    </span>
+                  )}
+                {hotTake && (
+                  <div
+                    style={{
+                      fontFamily: SERIF,
+                      fontStyle: "italic",
+                      fontSize: "15px",
+                      color: COLORS.cobalt,
+                      lineHeight: 1.3,
+                      textAlign: "center",
+                      marginTop: "4px",
+                    }}
+                  >
+                    “{hotTake}”
+                  </div>
+                )}
+              </div>
               )}
             </div>
           );

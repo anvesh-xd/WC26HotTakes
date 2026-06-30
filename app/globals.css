@@ -338,6 +338,85 @@ input[type="number"] {
   font-weight: 500;
 }
 
+.score-result-sm {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 500;
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* ---- Vertical fixture rows ----------------------------------------- */
+
+.fixture-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.fixture-row {
+  display: grid;
+  grid-template-columns: 1.25rem 2rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fixture-tick {
+  width: 1.25rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.fixture-tick.is-live-lead {
+  color: var(--flame);
+}
+
+.fixture-team {
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.fixture-row.is-winner .fixture-team {
+  color: var(--ink);
+}
+
+.score-input-inline {
+  width: 48px;
+  height: 44px;
+  font-size: 1.35rem;
+}
+
+.fixture-footer {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fixture-meta {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.fixture-hot-take {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--muted);
+  text-align: center;
+}
+
 /* ---- Hot take (typewritten fill-in line) --------------------------- */
 
 .hot-take-input {

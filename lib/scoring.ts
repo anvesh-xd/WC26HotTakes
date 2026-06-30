@@ -28,3 +28,15 @@ export function gradePrediction(
   }
   return "wrong";
 }
+
+export type MatchWinner = "home" | "away" | "draw" | null;
+
+export function matchWinner(
+  home: number | null,
+  away: number | null
+): MatchWinner {
+  if (home == null || away == null) return null;
+  if (home > away) return "home";
+  if (away > home) return "away";
+  return "draw";
+}
