@@ -120,17 +120,23 @@ export default function Home() {
       visibility: style.visibility,
       zIndex: style.zIndex,
       opacity: style.opacity,
+      pointerEvents: style.pointerEvents,
     };
 
     try {
-      // html2canvas mis-renders off-screen CSS grid/flex; park in-viewport
-      // invisibly so layout is calculated before capture.
+      // html2canvas cannot paint visibility:hidden / opacity:0 nodes — keep the
+      // card fully visible but parked behind the page while layout is measured.
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
       style.position = "fixed";
       style.left = "0";
       style.top = "0";
-      style.visibility = "hidden";
-      style.opacity = "0";
+      style.visibility = "visible";
+      style.opacity = "1";
       style.zIndex = "-1";
+      style.pointerEvents = "none";
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
@@ -142,6 +148,8 @@ export default function Home() {
         scale: isWide ? 1.5 : 2,
         useCORS: true,
         logging: false,
+        width: el.offsetWidth,
+        height: el.offsetHeight,
       });
 
       const blob: Blob | null = await new Promise((resolve) =>
