@@ -53,23 +53,44 @@ export default function Home() {
     [setPrediction]
   );
 
+  const MATCHES_POLL_MS = 60_000;
+
   useEffect(() => {
     let active = true;
-    fetch("/api/matches")
-      .then((res) => {
+
+    async function loadMatches(isInitial: boolean) {
+      try {
+        const res = await fetch("/api/matches", {
+          cache: "no-store",
+          headers: { Pragma: "no-cache" },
+        });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        return res.json();
-      })
-      .then((data: { matches: Match[] }) => {
+        const data: { matches: Match[] } = await res.json();
         if (!active) return;
         setMatches(data.matches ?? []);
         setStatus("ready");
-      })
-      .catch(() => {
-        if (active) setStatus("error");
-      });
+      } catch {
+        if (!active) return;
+        if (isInitial) setStatus("error");
+      }
+    }
+
+    loadMatches(true);
+
+    const interval = window.setInterval(
+      () => loadMatches(false),
+      MATCHES_POLL_MS
+    );
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadMatches(false);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

@@ -3,11 +3,16 @@ import { NextResponse } from "next/server";
 const FOOTBALL_DATA_URL =
   "https://api.football-data.org/v4/competitions/2000/matches?stage=LAST_32";
 
-// Cache this route's output at the edge for 5 minutes so bursts of traffic are
-// served from Vercel's CDN instead of re-invoking the function.
-export const revalidate = 300;
+// Revalidate upstream data every 60s — short enough for live scores, still
+// protects the football-data.org rate limit under traffic spikes.
+export const revalidate = 60;
 
 type MatchStatus = "SCHEDULED" | "TIMED" | "IN_PLAY" | "FINISHED";
+
+interface ScoreLine {
+  home: number | null;
+  away: number | null;
+}
 
 interface FootballDataMatch {
   id: number;
@@ -15,7 +20,11 @@ interface FootballDataMatch {
   status: MatchStatus;
   homeTeam: { name: string | null };
   awayTeam: { name: string | null };
-  score: { fullTime: { home: number | null; away: number | null } };
+  score: {
+    fullTime: ScoreLine;
+    halfTime?: ScoreLine;
+    regularTime?: ScoreLine;
+  };
 }
 
 interface FootballDataResponse {
@@ -31,6 +40,23 @@ interface CleanedMatch {
   score: { home: number | null; away: number | null };
 }
 
+function extractScore(match: FootballDataMatch): ScoreLine {
+  const score = match.score;
+  if (!score) return { home: null, away: null };
+
+  const lines = [score.fullTime, score.regularTime, score.halfTime];
+  for (const line of lines) {
+    if (line?.home != null && line?.away != null) {
+      return { home: line.home, away: line.away };
+    }
+  }
+
+  return {
+    home: score.fullTime?.home ?? null,
+    away: score.fullTime?.away ?? null,
+  };
+}
+
 export async function GET() {
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
 
@@ -43,7 +69,7 @@ export async function GET() {
 
   const res = await fetch(FOOTBALL_DATA_URL, {
     headers: { "X-Auth-Token": apiKey },
-    next: { revalidate: 300 },
+    next: { revalidate: 60 },
   });
 
   if (!res.ok) {
@@ -55,23 +81,26 @@ export async function GET() {
 
   const data: FootballDataResponse = await res.json();
 
-  const matches: CleanedMatch[] = (data.matches ?? []).map((match) => ({
-    id: match.id,
-    utcDate: match.utcDate,
-    status: match.status,
-    homeTeam: match.homeTeam?.name ?? null,
-    awayTeam: match.awayTeam?.name ?? null,
-    score: {
-      home: match.score?.fullTime?.home ?? null,
-      away: match.score?.fullTime?.away ?? null,
-    },
-  }));
+  const matches: CleanedMatch[] = (data.matches ?? []).map((match) => {
+    const score = extractScore(match);
+    return {
+      id: match.id,
+      utcDate: match.utcDate,
+      status: match.status,
+      homeTeam: match.homeTeam?.name ?? null,
+      awayTeam: match.awayTeam?.name ?? null,
+      score,
+    };
+  });
 
   return NextResponse.json(
     { matches },
     {
       headers: {
-        "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+        // Browsers must not reuse a stale JSON snapshot (fixes stuck predictions UI).
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        // Vercel edge may cache briefly to absorb traffic without hammering upstream.
+        "CDN-Cache-Control": "max-age=60, stale-while-revalidate=30",
       },
     }
   );
