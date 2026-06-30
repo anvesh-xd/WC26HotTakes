@@ -177,21 +177,15 @@ export default function Home() {
         </span>
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start gap-10 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-16">
           <div className="max-w-lg">
-            <p
-              className="reveal serif-it text-lg text-[var(--cobalt)]"
-              style={{ animationDelay: "0s" }}
-            >
-              The Matchday Almanac
-            </p>
             <span
-              className="kicker reveal mt-3"
-              style={{ animationDelay: "0.08s" }}
+              className="kicker reveal"
+              style={{ animationDelay: "0s" }}
             >
               ★ FIFA World Cup 2026
             </span>
             <h1
               className="display reveal mt-5 text-[3rem] sm:text-[4.75rem]"
-              style={{ animationDelay: "0.16s" }}
+              style={{ animationDelay: "0.08s" }}
             >
               Make Your
               <br />
