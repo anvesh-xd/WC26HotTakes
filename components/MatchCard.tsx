@@ -6,7 +6,20 @@ import { getFlag } from "@/lib/flags";
 import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
 import type { Prediction } from "@/lib/useLocalStorage";
 
-export type MatchStatus = "SCHEDULED" | "TIMED" | "IN_PLAY" | "FINISHED";
+export type MatchStatus =
+  | "SCHEDULED"
+  | "TIMED"
+  | "IN_PLAY"
+  | "PAUSED"
+  | "FINISHED";
+
+export function isMatchLive(status: MatchStatus): boolean {
+  return status === "IN_PLAY" || status === "PAUSED";
+}
+
+export function isMatchLocked(status: MatchStatus): boolean {
+  return status === "FINISHED" || isMatchLive(status);
+}
 
 export interface Match {
   id: number;
@@ -62,8 +75,8 @@ function sanitize(raw: string): string {
 
 function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const isFinished = match.status === "FINISHED";
-  const isLive = match.status === "IN_PLAY";
-  const isLocked = isFinished || isLive;
+  const isLive = isMatchLive(match.status);
+  const isLocked = isMatchLocked(match.status);
 
   const [home, setHome] = useState(prediction ? String(prediction.home) : "");
   const [away, setAway] = useState(prediction ? String(prediction.away) : "");
@@ -224,7 +237,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
         {isLive && (
           <span className="badge badge-live">
             <span className="live-dot" />
-            Live
+            {match.status === "PAUSED" ? "HT" : "Live"}
           </span>
         )}
         {!isLocked && <span className="meta">{kickoffTime(match.utcDate)}</span>}

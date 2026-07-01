@@ -1,7 +1,11 @@
 import { forwardRef } from "react";
 import { getFlag } from "@/lib/flags";
 import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
-import type { Match } from "@/components/MatchCard";
+import {
+  isMatchLive,
+  isMatchLocked,
+  type Match,
+} from "@/components/MatchCard";
 import type { Predictions, Prediction } from "@/lib/useLocalStorage";
 
 const SITE_URL = "WC26HOTTAKES.COM";
@@ -51,8 +55,8 @@ function MatchFixtureCard({
   compact?: boolean;
 }) {
   const isFinished = match.status === "FINISHED";
-  const isLive = match.status === "IN_PLAY";
-  const isLocked = isFinished || isLive;
+  const isLive = isMatchLive(match.status);
+  const isLocked = isMatchLocked(match.status);
   const actualHome = match.score.home;
   const actualAway = match.score.away;
   const hasActual = isLocked && actualHome !== null && actualAway !== null;

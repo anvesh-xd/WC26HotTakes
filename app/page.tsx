@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MatchCard, { type Match } from "@/components/MatchCard";
+import MatchCard, {
+  isMatchLive,
+  type Match,
+} from "@/components/MatchCard";
 import NameInput from "@/components/NameInput";
 import ShareCard from "@/components/ShareCard";
 import StatCounter from "@/components/StatCounter";
@@ -45,6 +48,8 @@ export default function Home() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
+  const [fetchStale, setFetchStale] = useState(false);
+  const matchesRef = useRef<Match[]>([]);
 
   const handlePredict = useCallback(
     (matchId: number, home: number, away: number, hotTake: string) => {
@@ -53,44 +58,79 @@ export default function Home() {
     [setPrediction]
   );
 
-  const MATCHES_POLL_MS = 60_000;
+  const MATCHES_POLL_IDLE_MS = 60_000;
+  const MATCHES_POLL_LIVE_MS = 20_000;
+  const POLL_RETRY_MS = 5_000;
 
   useEffect(() => {
     let active = true;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function pollIntervalMs() {
+      return matchesRef.current.some((m) => isMatchLive(m.status))
+        ? MATCHES_POLL_LIVE_MS
+        : MATCHES_POLL_IDLE_MS;
+    }
+
+    function schedulePoll() {
+      if (!active) return;
+      pollTimer = setTimeout(async () => {
+        await loadMatches(false);
+        schedulePoll();
+      }, pollIntervalMs());
+    }
 
     async function loadMatches(isInitial: boolean) {
       try {
-        const res = await fetch("/api/matches", {
+        const res = await fetch(`/api/matches?_=${Date.now()}`, {
           cache: "no-store",
           headers: { Pragma: "no-cache" },
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data: { matches: Match[] } = await res.json();
         if (!active) return;
-        setMatches(data.matches ?? []);
+        const next = data.matches ?? [];
+        matchesRef.current = next;
+        setMatches(next);
+        setFetchStale(false);
         setStatus("ready");
       } catch {
         if (!active) return;
-        if (isInitial) setStatus("error");
+        if (isInitial) {
+          setStatus("error");
+        } else if (matchesRef.current.length > 0) {
+          setFetchStale(true);
+          setTimeout(() => {
+            if (active) loadMatches(false);
+          }, POLL_RETRY_MS);
+        }
       }
     }
 
-    loadMatches(true);
+    const refresh = () => loadMatches(false);
 
-    const interval = window.setInterval(
-      () => loadMatches(false),
-      MATCHES_POLL_MS
-    );
+    loadMatches(true).then(() => {
+      if (active) schedulePoll();
+    });
 
     const onVisibility = () => {
-      if (document.visibilityState === "visible") loadMatches(false);
+      if (document.visibilityState === "visible") refresh();
     };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) refresh();
+    };
+    const onFocus = () => refresh();
+
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", onFocus);
 
     return () => {
       active = false;
-      window.clearInterval(interval);
+      if (pollTimer) clearTimeout(pollTimer);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", onFocus);
     };
   }, []);
 
@@ -278,6 +318,12 @@ export default function Home() {
               is set in <code>.env.local</code>.
             </p>
           </div>
+        )}
+
+        {status === "ready" && fetchStale && (
+          <p className="meta mb-6 text-center text-[var(--muted)]">
+            Couldn&apos;t refresh scores — showing last update. Retrying…
+          </p>
         )}
 
         {status === "ready" && groups.length === 0 && (

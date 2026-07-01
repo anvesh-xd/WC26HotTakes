@@ -3,9 +3,14 @@ import { NextResponse } from "next/server";
 const FOOTBALL_DATA_URL =
   "https://api.football-data.org/v4/competitions/2000/matches?stage=LAST_32";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
-type MatchStatus = "SCHEDULED" | "TIMED" | "IN_PLAY" | "FINISHED";
+type MatchStatus =
+  | "SCHEDULED"
+  | "TIMED"
+  | "IN_PLAY"
+  | "PAUSED"
+  | "FINISHED";
 type ScoreDuration = "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT";
 
 interface ScoreLine {
@@ -108,7 +113,7 @@ export async function GET() {
 
   const res = await fetch(FOOTBALL_DATA_URL, {
     headers: { "X-Auth-Token": apiKey },
-    next: { revalidate: 60 },
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -139,7 +144,8 @@ export async function GET() {
     {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "CDN-Cache-Control": "max-age=60, stale-while-revalidate=30",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
       },
     }
   );
