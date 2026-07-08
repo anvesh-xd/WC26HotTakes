@@ -437,12 +437,12 @@ input[type="number"] {
 
 .kalshi-market-team--home .kalshi-market-team-name {
   text-align: left;
-  color: var(--green);
+  color: var(--cobalt);
 }
 
 .kalshi-market-team--away .kalshi-market-team-name {
   text-align: right;
-  color: var(--cobalt);
+  color: var(--gold);
 }
 
 .kalshi-market-pct {
@@ -456,11 +456,11 @@ input[type="number"] {
 }
 
 .kalshi-market-pct--home {
-  color: var(--green);
+  color: var(--cobalt);
 }
 
 .kalshi-market-pct--away {
-  color: var(--cobalt);
+  color: var(--gold);
 }
 
 .kalshi-market-bar {
@@ -482,12 +482,12 @@ input[type="number"] {
 }
 
 .kalshi-market-bar-fill--home {
-  background: var(--green);
+  background: var(--cobalt);
   border-radius: 100px 0 0 100px;
 }
 
 .kalshi-market-bar-fill--away {
-  background: var(--cobalt);
+  background: var(--gold);
   border-radius: 0 100px 100px 0;
 }
 

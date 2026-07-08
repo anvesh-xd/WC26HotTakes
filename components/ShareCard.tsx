@@ -107,7 +107,7 @@ function ShareKalshiAdvanceBar({
               fontSize: teamSize,
               fontWeight: 800,
               textTransform: "uppercase",
-              color: COLORS.green,
+              color: COLORS.cobalt,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -121,7 +121,7 @@ function ShareKalshiAdvanceBar({
             fontSize: pctSize,
             fontWeight: 800,
             fontVariantNumeric: "tabular-nums",
-            color: COLORS.green,
+            color: COLORS.cobalt,
             flexShrink: 0,
           }}
         >
@@ -140,7 +140,7 @@ function ShareKalshiAdvanceBar({
             style={{
               width: `${barPct}%`,
               height: "100%",
-              backgroundColor: COLORS.green,
+              backgroundColor: COLORS.cobalt,
               borderRadius: "100px 0 0 100px",
             }}
           />
@@ -148,7 +148,7 @@ function ShareKalshiAdvanceBar({
             style={{
               width: `${100 - barPct}%`,
               height: "100%",
-              backgroundColor: COLORS.cobalt,
+              backgroundColor: COLORS.gold,
               borderRadius: "0 100px 100px 0",
             }}
           />
@@ -158,7 +158,7 @@ function ShareKalshiAdvanceBar({
             fontSize: pctSize,
             fontWeight: 800,
             fontVariantNumeric: "tabular-nums",
-            color: COLORS.cobalt,
+            color: COLORS.gold,
             flexShrink: 0,
           }}
         >
@@ -179,7 +179,7 @@ function ShareKalshiAdvanceBar({
               fontSize: teamSize,
               fontWeight: 800,
               textTransform: "uppercase",
-              color: COLORS.cobalt,
+              color: COLORS.gold,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
