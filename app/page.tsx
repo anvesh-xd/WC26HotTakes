@@ -8,7 +8,9 @@ import MatchCard, {
 import NameInput from "@/components/NameInput";
 import ShareCard from "@/components/ShareCard";
 import StatCounter from "@/components/StatCounter";
+import TournamentWinnerOdds from "@/components/TournamentWinnerOdds";
 import { trackCardStamped } from "@/lib/analytics";
+import type { TournamentWinnerOdds as WinnerOdds } from "@/lib/kalshi";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 
 function dateLabel(utcDate: string): string {
@@ -45,6 +47,8 @@ function groupByDate(matches: Match[]): DateGroup[] {
 export default function Home() {
   const { name, setName, predictions, setPrediction } = useLocalStorage();
   const [matches, setMatches] = useState<Match[]>([]);
+  const [tournamentWinners, setTournamentWinners] = useState<WinnerOdds[]>([]);
+  const [stageLabel, setStageLabel] = useState("Quarter-final");
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
@@ -87,11 +91,17 @@ export default function Home() {
           headers: { Pragma: "no-cache" },
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const data: { matches: Match[] } = await res.json();
+        const data: {
+          matches: Match[];
+          tournamentWinners?: WinnerOdds[];
+          stageLabel?: string;
+        } = await res.json();
         if (!active) return;
         const next = data.matches ?? [];
         matchesRef.current = next;
         setMatches(next);
+        setTournamentWinners(data.tournamentWinners ?? []);
+        if (data.stageLabel) setStageLabel(data.stageLabel);
         setFetchStale(false);
         setStatus("ready");
       } catch {
@@ -204,7 +214,7 @@ export default function Home() {
       const sharePayload = {
         files: [file],
         title: "My World Cup 2026 Picks",
-        text: "My World Cup 2026 Round of 32 predictions 🔮",
+        text: "My World Cup 2026 quarter-final predictions 🔮",
       };
 
       // Prefer native share on phones/tablets. Skip canShare when absent;
@@ -281,8 +291,8 @@ export default function Home() {
               className="reveal serif-it mt-4 text-lg text-[var(--muted)]"
               style={{ animationDelay: "0.24s" }}
             >
-              Pick the score for every Round of 32 fixture. Stamp your card.
-              Share it.
+              Pick the score for every {stageLabel.toLowerCase()} fixture. Stamp
+              your card. Share it.
             </p>
           </div>
 
@@ -328,7 +338,7 @@ export default function Home() {
 
         {status === "ready" && groups.length === 0 && (
           <p className="meta py-8 text-center">
-            No Round of 32 fixtures available yet.
+            No {stageLabel.toLowerCase()} fixtures available yet.
           </p>
         )}
 
@@ -358,6 +368,10 @@ export default function Home() {
             </section>
           ))}
         </div>
+
+        {status === "ready" && (
+          <TournamentWinnerOdds winners={tournamentWinners} />
+        )}
       </div>
 
       {/* off-screen card captured by html2canvas — only mounted once the user

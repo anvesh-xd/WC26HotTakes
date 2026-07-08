@@ -21,6 +21,12 @@ export function isMatchLocked(status: MatchStatus): boolean {
   return status === "FINISHED" || isMatchLive(status);
 }
 
+export interface MatchKalshiOdds {
+  homeWinPct: number | null;
+  awayWinPct: number | null;
+  drawPct: number | null;
+}
+
 export interface Match {
   id: number;
   utcDate: string;
@@ -30,6 +36,8 @@ export interface Match {
   score: { home: number | null; away: number | null };
   penalties?: { home: number | null; away: number | null } | null;
   scoreDuration?: "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT" | null;
+  stageLabel?: string;
+  kalshi?: MatchKalshiOdds | null;
 }
 
 const MAX_HOT_TAKE = 140;
@@ -71,6 +79,11 @@ function kickoffTime(utcDate: string): string {
 
 function sanitize(raw: string): string {
   return raw.replace(/[^0-9]/g, "").slice(0, 2);
+}
+
+function formatKalshiPct(pct: number | null | undefined): string | null {
+  if (pct == null || pct <= 0) return null;
+  return `${pct}%`;
 }
 
 function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
@@ -210,6 +223,10 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const showFooter =
     !isLocked || (isFinished && (prediction != null || hasPens));
 
+  const homeKalshi = formatKalshiPct(match.kalshi?.homeWinPct);
+  const awayKalshi = formatKalshiPct(match.kalshi?.awayWinPct);
+  const drawKalshi = formatKalshiPct(match.kalshi?.drawPct);
+
   return (
     <div
       className={`match-card p-4 sm:p-5 ${
@@ -218,7 +235,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
     >
       {/* top row: stage + status/kickoff */}
       <div className="mb-4 flex items-center justify-between">
-        <span className="meta meta-accent">Round of 32</span>
+        <span className="meta meta-accent">{match.stageLabel ?? "Quarter-final"}</span>
         {isFinished &&
           (gradeBadge ? (
             <span
@@ -253,7 +270,14 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
             {winner === "home" ? "✓" : ""}
           </span>
           <span className="flag text-2xl">{getFlag(match.homeTeam)}</span>
-          <span className="fixture-team">{match.homeTeam ?? "TBD"}</span>
+          <div className="fixture-team-wrap min-w-0">
+            <span className="fixture-team">{match.homeTeam ?? "TBD"}</span>
+            {homeKalshi && (
+              <span className="kalshi-odds" aria-label={`Kalshi win odds ${homeKalshi}`}>
+                {homeKalshi}
+              </span>
+            )}
+          </div>
           {isLocked ? (
             <span
               className="score-result-sm"
@@ -291,7 +315,14 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
             {winner === "away" ? "✓" : ""}
           </span>
           <span className="flag text-2xl">{getFlag(match.awayTeam)}</span>
-          <span className="fixture-team">{match.awayTeam ?? "TBD"}</span>
+          <div className="fixture-team-wrap min-w-0">
+            <span className="fixture-team">{match.awayTeam ?? "TBD"}</span>
+            {awayKalshi && (
+              <span className="kalshi-odds" aria-label={`Kalshi win odds ${awayKalshi}`}>
+                {awayKalshi}
+              </span>
+            )}
+          </div>
           {isLocked ? (
             <span
               className="score-result-sm"
@@ -321,6 +352,15 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
           )}
         </div>
       </div>
+
+      {drawKalshi && (
+        <p className="meta mt-2 text-right text-[var(--muted)]">
+          Draw {drawKalshi}
+          <span className="ml-1 text-[0.6rem] uppercase tracking-wide text-[var(--cobalt)]">
+            · Kalshi
+          </span>
+        </p>
+      )}
 
       {/* predictions, pens, hot take */}
       {showFooter ? (
@@ -391,6 +431,10 @@ export default memo(MatchCard, (prev, next) => {
     prev.match.penalties?.home === next.match.penalties?.home &&
     prev.match.penalties?.away === next.match.penalties?.away &&
     prev.match.scoreDuration === next.match.scoreDuration &&
+    prev.match.stageLabel === next.match.stageLabel &&
+    prev.match.kalshi?.homeWinPct === next.match.kalshi?.homeWinPct &&
+    prev.match.kalshi?.awayWinPct === next.match.kalshi?.awayWinPct &&
+    prev.match.kalshi?.drawPct === next.match.kalshi?.drawPct &&
     prev.prediction?.home === next.prediction?.home &&
     prev.prediction?.away === next.prediction?.away &&
     prev.prediction?.hotTake === next.prediction?.hotTake &&

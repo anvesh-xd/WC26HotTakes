@@ -317,7 +317,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
               color: COLORS.flame,
             }}
           >
-            Round of 32
+            {matches[0]?.stageLabel ?? "Quarter-final"}
           </span>
         </div>
         <div

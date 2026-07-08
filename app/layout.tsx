@@ -37,7 +37,7 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: "World Cup 2026 Hot Takes",
   description:
-    "Pick the score for every Round of 32 match. Stamp your card. Share it.",
+    "Pick the score for every World Cup quarter-final. Stamp your card. Share it.",
 };
 
 export default function RootLayout({

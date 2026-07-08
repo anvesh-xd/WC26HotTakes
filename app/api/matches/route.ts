@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-
-const FOOTBALL_DATA_URL =
-  "https://api.football-data.org/v4/competitions/2000/matches?stage=LAST_32";
+import {
+  fetchKalshiData,
+  matchKalshiGameOdds,
+  type TournamentWinnerOdds,
+} from "@/lib/kalshi";
+import {
+  footballDataMatchesUrl,
+  stageLabel,
+  TOURNAMENT_STAGE,
+} from "@/lib/tournament";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +44,12 @@ interface FootballDataResponse {
   matches: FootballDataMatch[];
 }
 
+export interface MatchKalshiOdds {
+  homeWinPct: number | null;
+  awayWinPct: number | null;
+  drawPct: number | null;
+}
+
 export interface CleanedMatch {
   id: number;
   utcDate: string;
@@ -46,6 +59,8 @@ export interface CleanedMatch {
   score: { home: number | null; away: number | null };
   penalties: { home: number | null; away: number | null } | null;
   scoreDuration: ScoreDuration | null;
+  stageLabel: string;
+  kalshi: MatchKalshiOdds | null;
 }
 
 function lineOrNull(line?: ScoreLine | null): ScoreLine | null {
@@ -53,8 +68,6 @@ function lineOrNull(line?: ScoreLine | null): ScoreLine | null {
   return { home: line.home, away: line.away };
 }
 
-// Predictions are for 90-minute scorelines. Use regularTime when the API
-// provides it (knockout games decided on pens). fullTime often holds pen totals.
 function extractMatchScores(match: FootballDataMatch): {
   score: ScoreLine;
   penalties: ScoreLine | null;
@@ -83,7 +96,6 @@ function extractMatchScores(match: FootballDataMatch): {
     }
   }
 
-  // Live / in-progress: running score from fullTime, then halfTime.
   for (const line of [score.fullTime, score.halfTime]) {
     const parsed = lineOrNull(line);
     if (parsed) {
@@ -111,36 +123,50 @@ export async function GET() {
     );
   }
 
-  const res = await fetch(FOOTBALL_DATA_URL, {
-    headers: { "X-Auth-Token": apiKey },
-    cache: "no-store",
-  });
+  const label = stageLabel();
 
-  if (!res.ok) {
+  const [footballRes, kalshiResult] = await Promise.all([
+    fetch(footballDataMatchesUrl(), {
+      headers: { "X-Auth-Token": apiKey },
+      cache: "no-store",
+    }),
+    fetchKalshiData().catch(() => ({
+      gameOddsByEvent: new Map<string, Record<string, number>>(),
+      tournamentWinners: [] as TournamentWinnerOdds[],
+    })),
+  ]);
+
+  if (!footballRes.ok) {
     return NextResponse.json(
       { error: "Failed to fetch matches from football-data.org" },
-      { status: res.status }
+      { status: footballRes.status }
     );
   }
 
-  const data: FootballDataResponse = await res.json();
+  const data: FootballDataResponse = await footballRes.json();
+  const { gameOddsByEvent, tournamentWinners } = kalshiResult;
 
   const matches: CleanedMatch[] = (data.matches ?? []).map((match) => {
     const { score, penalties, scoreDuration } = extractMatchScores(match);
+    const homeTeam = match.homeTeam?.name ?? null;
+    const awayTeam = match.awayTeam?.name ?? null;
+
     return {
       id: match.id,
       utcDate: match.utcDate,
       status: match.status,
-      homeTeam: match.homeTeam?.name ?? null,
-      awayTeam: match.awayTeam?.name ?? null,
+      homeTeam,
+      awayTeam,
       score,
       penalties,
       scoreDuration,
+      stageLabel: label,
+      kalshi: matchKalshiGameOdds(homeTeam, awayTeam, gameOddsByEvent),
     };
   });
 
   return NextResponse.json(
-    { matches },
+    { matches, tournamentWinners, stage: TOURNAMENT_STAGE, stageLabel: label },
     {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
