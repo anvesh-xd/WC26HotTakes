@@ -29,6 +29,7 @@ const COLORS = {
   flame: "#E8431F",
   cobalt: "#15485C",
   gold: "#C8881A",
+  green: "#3DDB82",
   muted: "#6F6555",
   wrong: "#C0392B",
 };
@@ -44,6 +45,167 @@ const GRADE_LABEL: Record<PredictionGrade, string> = {
   outcome: "~ Correct Winner",
   wrong: "✗ Wrong",
 };
+
+function ShareKalshiAdvanceBar({
+  homeTeam,
+  awayTeam,
+  homePct,
+  awayPct,
+  compact,
+}: {
+  homeTeam: string;
+  awayTeam: string;
+  homePct: number;
+  awayPct: number;
+  compact?: boolean;
+}) {
+  const total = homePct + awayPct;
+  const barPct = total > 0 ? (homePct / total) * 100 : 50;
+  const labelSize = compact ? "7px" : "8px";
+  const teamSize = compact ? "7px" : "8px";
+  const pctSize = compact ? "9px" : "10px";
+  const flagSize = compact ? "11px" : "12px";
+  const viaSize = compact ? "6px" : "7px";
+
+  return (
+    <div style={{ marginTop: compact ? "8px" : "10px" }}>
+      <p
+        style={{
+          margin: "0 0 5px",
+          textAlign: "center",
+          fontSize: labelSize,
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: COLORS.muted,
+        }}
+      >
+        To Advance
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1.4fr) auto minmax(0,1fr)",
+          alignItems: "center",
+          gap: compact ? "3px 5px" : "4px 6px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "3px",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
+          <span style={{ fontFamily: EMOJI_FONT, fontSize: flagSize, flexShrink: 0 }}>
+            {getFlag(homeTeam)}
+          </span>
+          <span
+            style={{
+              fontSize: teamSize,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              color: COLORS.green,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {homeTeam}
+          </span>
+        </div>
+        <span
+          style={{
+            fontSize: pctSize,
+            fontWeight: 800,
+            fontVariantNumeric: "tabular-nums",
+            color: COLORS.green,
+            flexShrink: 0,
+          }}
+        >
+          {homePct}%
+        </span>
+        <div
+          style={{
+            display: "flex",
+            height: "4px",
+            borderRadius: "100px",
+            overflow: "hidden",
+            backgroundColor: "rgba(27, 26, 23, 0.08)",
+          }}
+        >
+          <div
+            style={{
+              width: `${barPct}%`,
+              height: "100%",
+              backgroundColor: COLORS.green,
+              borderRadius: "100px 0 0 100px",
+            }}
+          />
+          <div
+            style={{
+              width: `${100 - barPct}%`,
+              height: "100%",
+              backgroundColor: COLORS.cobalt,
+              borderRadius: "0 100px 100px 0",
+            }}
+          />
+        </div>
+        <span
+          style={{
+            fontSize: pctSize,
+            fontWeight: 800,
+            fontVariantNumeric: "tabular-nums",
+            color: COLORS.cobalt,
+            flexShrink: 0,
+          }}
+        >
+          {awayPct}%
+        </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: "3px",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
+          <span
+            style={{
+              fontSize: teamSize,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              color: COLORS.cobalt,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {awayTeam}
+          </span>
+          <span style={{ fontFamily: EMOJI_FONT, fontSize: flagSize, flexShrink: 0 }}>
+            {getFlag(awayTeam)}
+          </span>
+        </div>
+      </div>
+      <p
+        style={{
+          margin: "5px 0 0",
+          textAlign: "center",
+          fontSize: viaSize,
+          color: COLORS.muted,
+          lineHeight: 1,
+        }}
+      >
+        via Kalshi
+      </p>
+    </div>
+  );
+}
 
 function MatchFixtureCard({
   match,
@@ -80,6 +242,16 @@ function MatchFixtureCard({
   const hasPens =
     match.penalties?.home != null && match.penalties?.away != null;
   const showFooter = isFinished || Boolean(hotTake) || hasPens;
+
+  const homeAdvance = match.kalshi?.homeAdvancePct ?? 0;
+  const awayAdvance = match.kalshi?.awayAdvancePct ?? 0;
+  const showKalshiAdvance =
+    !isFinished &&
+    !isLive &&
+    homeAdvance > 0 &&
+    awayAdvance > 0 &&
+    match.homeTeam &&
+    match.awayTeam;
 
   const homeScoreColor = isFinished
     ? COLORS.gold
@@ -190,6 +362,16 @@ function MatchFixtureCard({
           {awayScore}
         </span>
       </div>
+
+      {showKalshiAdvance && (
+        <ShareKalshiAdvanceBar
+          homeTeam={match.homeTeam!}
+          awayTeam={match.awayTeam!}
+          homePct={homeAdvance}
+          awayPct={awayAdvance}
+          compact={compact}
+        />
+      )}
 
       {showFooter && (
         <div
