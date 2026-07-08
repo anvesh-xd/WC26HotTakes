@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { getFlag } from "@/lib/flags";
+import { teamAbbrev } from "@/lib/kalshi";
 import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
 import {
   isMatchLive,
@@ -61,11 +62,35 @@ function ShareKalshiAdvanceBar({
 }) {
   const total = homePct + awayPct;
   const barPct = total > 0 ? (homePct / total) * 100 : 50;
+  const homeCode = teamAbbrev(homeTeam);
+  const awayCode = teamAbbrev(awayTeam);
   const labelSize = compact ? "7px" : "8px";
-  const teamSize = compact ? "7px" : "8px";
+  const codeSize = compact ? "8px" : "9px";
   const pctSize = compact ? "9px" : "10px";
-  const flagSize = compact ? "11px" : "12px";
   const viaSize = compact ? "6px" : "7px";
+  const gap = compact ? 3 : 4;
+
+  const codeStyle = (color: string) =>
+    ({
+      fontFamily: MONO,
+      fontSize: codeSize,
+      fontWeight: 800,
+      letterSpacing: "0.04em",
+      color,
+      lineHeight: 1.2,
+      flexShrink: 0,
+    }) as const;
+
+  const pctStyle = (color: string) =>
+    ({
+      fontFamily: MONO,
+      fontSize: pctSize,
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums",
+      color,
+      lineHeight: 1.2,
+      flexShrink: 0,
+    }) as const;
 
   return (
     <div style={{ marginTop: compact ? "8px" : "10px" }}>
@@ -78,57 +103,26 @@ function ShareKalshiAdvanceBar({
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: COLORS.muted,
+          lineHeight: 1.2,
         }}
       >
         To Advance
       </p>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1.4fr) auto minmax(0,1fr)",
+          display: "flex",
           alignItems: "center",
-          gap: compact ? "3px 5px" : "4px 6px",
+          justifyContent: "center",
+          gap: `${gap}px`,
         }}
       >
+        <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
+        <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "3px",
-            minWidth: 0,
-            overflow: "hidden",
-          }}
-        >
-          <span style={{ fontFamily: EMOJI_FONT, fontSize: flagSize, flexShrink: 0 }}>
-            {getFlag(homeTeam)}
-          </span>
-          <span
-            style={{
-              fontSize: teamSize,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              color: COLORS.cobalt,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {homeTeam}
-          </span>
-        </div>
-        <span
-          style={{
-            fontSize: pctSize,
-            fontWeight: 800,
-            fontVariantNumeric: "tabular-nums",
-            color: COLORS.cobalt,
-            flexShrink: 0,
-          }}
-        >
-          {homePct}%
-        </span>
-        <div
-          style={{
+            flex: "1 1 auto",
+            minWidth: compact ? "36px" : "48px",
+            maxWidth: compact ? "72px" : "96px",
             display: "flex",
             height: "4px",
             borderRadius: "100px",
@@ -141,7 +135,6 @@ function ShareKalshiAdvanceBar({
               width: `${barPct}%`,
               height: "100%",
               backgroundColor: COLORS.cobalt,
-              borderRadius: "100px 0 0 100px",
             }}
           />
           <div
@@ -149,48 +142,11 @@ function ShareKalshiAdvanceBar({
               width: `${100 - barPct}%`,
               height: "100%",
               backgroundColor: COLORS.gold,
-              borderRadius: "0 100px 100px 0",
             }}
           />
         </div>
-        <span
-          style={{
-            fontSize: pctSize,
-            fontWeight: 800,
-            fontVariantNumeric: "tabular-nums",
-            color: COLORS.gold,
-            flexShrink: 0,
-          }}
-        >
-          {awayPct}%
-        </span>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: "3px",
-            minWidth: 0,
-            overflow: "hidden",
-          }}
-        >
-          <span
-            style={{
-              fontSize: teamSize,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              color: COLORS.gold,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {awayTeam}
-          </span>
-          <span style={{ fontFamily: EMOJI_FONT, fontSize: flagSize, flexShrink: 0 }}>
-            {getFlag(awayTeam)}
-          </span>
-        </div>
+        <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
+        <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
       </div>
       <p
         style={{
@@ -198,7 +154,7 @@ function ShareKalshiAdvanceBar({
           textAlign: "center",
           fontSize: viaSize,
           color: COLORS.muted,
-          lineHeight: 1,
+          lineHeight: 1.2,
         }}
       >
         via Kalshi

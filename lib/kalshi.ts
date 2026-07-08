@@ -2,6 +2,23 @@ const KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2";
 const ADVANCE_SERIES = "KXWCROUND";
 const WINNER_SERIES = "KXMENWORLDCUP";
 
+/** football-data.org name → 3-letter display code */
+const TEAM_ABBREV: Record<string, string> = {
+  Argentina: "ARG",
+  Belgium: "BEL",
+  England: "ENG",
+  France: "FRA",
+  Morocco: "MAR",
+  Norway: "NOR",
+  Spain: "ESP",
+  Switzerland: "SUI",
+};
+
+export function teamAbbrev(name: string | null): string {
+  if (!name) return "TBD";
+  return TEAM_ABBREV[name] ?? name.slice(0, 3).toUpperCase();
+}
+
 export interface MatchKalshiOdds {
   homeAdvancePct: number | null;
   awayAdvancePct: number | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getFlag } from "@/lib/flags";
+import { teamAbbrev } from "@/lib/kalshi";
 
 interface KalshiMarketBarProps {
   homeTeam: string;
@@ -34,10 +34,9 @@ export default function KalshiMarketBar({
     <div className="kalshi-market">
       <p className="kalshi-market-label">To Advance</p>
       <div className="kalshi-market-row">
-        <div className="kalshi-market-team kalshi-market-team--home">
-          <span className="flag text-lg">{getFlag(homeTeam)}</span>
-          <span className="kalshi-market-team-name">{homeTeam}</span>
-        </div>
+        <span className="kalshi-market-code kalshi-market-code--home">
+          {teamAbbrev(homeTeam)}
+        </span>
         <span className="kalshi-market-pct kalshi-market-pct--home">
           {homePct}%
         </span>
@@ -54,10 +53,9 @@ export default function KalshiMarketBar({
         <span className="kalshi-market-pct kalshi-market-pct--away">
           {awayPct}%
         </span>
-        <div className="kalshi-market-team kalshi-market-team--away">
-          <span className="kalshi-market-team-name">{awayTeam}</span>
-          <span className="flag text-lg">{getFlag(awayTeam)}</span>
-        </div>
+        <span className="kalshi-market-code kalshi-market-code--away">
+          {teamAbbrev(awayTeam)}
+        </span>
       </div>
       <p className="kalshi-market-via">via Kalshi</p>
     </div>

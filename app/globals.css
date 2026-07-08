@@ -402,56 +402,36 @@ input[type="number"] {
 }
 
 .kalshi-market-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.75fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.5rem 0.65rem;
-}
-
-.kalshi-market-team {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  min-width: 0;
+  justify-content: center;
+  gap: 0.35rem 0.45rem;
 }
 
-.kalshi-market-team--home {
-  justify-content: flex-start;
-}
-
-.kalshi-market-team--away {
-  justify-content: flex-end;
-}
-
-.kalshi-market-team-name {
-  font-size: 0.7rem;
+.kalshi-market-code {
+  flex-shrink: 0;
+  font-family: var(--font-dmmono), ui-monospace, monospace;
+  font-size: 0.75rem;
   font-weight: 800;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
-  line-height: 1.15;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
-.kalshi-market-team--home .kalshi-market-team-name {
-  text-align: left;
+.kalshi-market-code--home {
   color: var(--cobalt);
 }
 
-.kalshi-market-team--away .kalshi-market-team-name {
-  text-align: right;
+.kalshi-market-code--away {
   color: var(--gold);
 }
 
 .kalshi-market-pct {
   flex-shrink: 0;
-  min-width: 2.25rem;
+  font-family: var(--font-dmmono), ui-monospace, monospace;
   font-size: 0.8rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.2;
   text-align: center;
 }
 
@@ -464,6 +444,9 @@ input[type="number"] {
 }
 
 .kalshi-market-bar {
+  flex: 1 1 auto;
+  min-width: 3rem;
+  max-width: 6rem;
   display: flex;
   height: 5px;
   border-radius: 100px;
