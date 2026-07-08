@@ -69,26 +69,33 @@ function ShareKalshiAdvanceBar({
   const pctSize = compact ? "9px" : "10px";
   const viaSize = compact ? "6px" : "7px";
   const gap = compact ? 3 : 4;
+  const rowHeight = compact ? 10 : 11;
 
   const codeStyle = (color: string) =>
     ({
+      display: "inline-flex",
+      alignItems: "center",
       fontFamily: MONO,
       fontSize: codeSize,
       fontWeight: 800,
       letterSpacing: "0.04em",
       color,
-      lineHeight: 1.2,
+      lineHeight: 1,
+      height: `${rowHeight}px`,
       flexShrink: 0,
     }) as const;
 
   const pctStyle = (color: string) =>
     ({
+      display: "inline-flex",
+      alignItems: "center",
       fontFamily: MONO,
       fontSize: pctSize,
       fontWeight: 800,
       fontVariantNumeric: "tabular-nums",
       color,
-      lineHeight: 1.2,
+      lineHeight: 1,
+      height: `${rowHeight}px`,
       flexShrink: 0,
     }) as const;
 
@@ -114,6 +121,7 @@ function ShareKalshiAdvanceBar({
           alignItems: "center",
           justifyContent: "center",
           gap: `${gap}px`,
+          height: `${rowHeight}px`,
         }}
       >
         <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
@@ -123,27 +131,36 @@ function ShareKalshiAdvanceBar({
             flex: "1 1 auto",
             minWidth: compact ? "36px" : "48px",
             maxWidth: compact ? "72px" : "96px",
+            height: `${rowHeight}px`,
             display: "flex",
-            height: "4px",
-            borderRadius: "100px",
-            overflow: "hidden",
-            backgroundColor: "rgba(27, 26, 23, 0.08)",
+            alignItems: "center",
           }}
         >
           <div
             style={{
-              width: `${barPct}%`,
-              height: "100%",
-              backgroundColor: COLORS.cobalt,
+              width: "100%",
+              display: "flex",
+              height: "4px",
+              borderRadius: "100px",
+              overflow: "hidden",
+              backgroundColor: "rgba(27, 26, 23, 0.08)",
             }}
-          />
-          <div
-            style={{
-              width: `${100 - barPct}%`,
-              height: "100%",
-              backgroundColor: COLORS.gold,
-            }}
-          />
+          >
+            <div
+              style={{
+                width: `${barPct}%`,
+                height: "100%",
+                backgroundColor: COLORS.cobalt,
+              }}
+            />
+            <div
+              style={{
+                width: `${100 - barPct}%`,
+                height: "100%",
+                backgroundColor: COLORS.gold,
+              }}
+            />
+          </div>
         </div>
         <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
         <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
