@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { MatchKalshiOdds } from "@/components/MatchCard";
+import { getFlag } from "@/lib/flags";
 
 interface KalshiMarketBarProps {
-  odds: MatchKalshiOdds;
+  homeTeam: string;
+  awayTeam: string;
+  homePct: number;
+  awayPct: number;
 }
 
-export default function KalshiMarketBar({ odds }: KalshiMarketBarProps) {
-  const homePct = odds.homeWinPct ?? 0;
-  const awayPct = odds.awayWinPct ?? 0;
+export default function KalshiMarketBar({
+  homeTeam,
+  awayTeam,
+  homePct,
+  awayPct,
+}: KalshiMarketBarProps) {
+  const total = homePct + awayPct;
+  const barPct = total > 0 ? (homePct / total) * 100 : 50;
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -24,24 +32,32 @@ export default function KalshiMarketBar({ odds }: KalshiMarketBarProps) {
 
   return (
     <div className="kalshi-market">
-      <p className="kalshi-market-label">Market Odds</p>
+      <p className="kalshi-market-label">To Advance</p>
       <div className="kalshi-market-row">
-        <span
-          className={`kalshi-market-pct${homePct > 50 ? " is-leading" : ""}`}
-        >
+        <div className="kalshi-market-team kalshi-market-team--home">
+          <span className="flag text-lg">{getFlag(homeTeam)}</span>
+          <span className="kalshi-market-team-name">{homeTeam}</span>
+        </div>
+        <span className="kalshi-market-pct kalshi-market-pct--home">
           {homePct}%
         </span>
         <div className="kalshi-market-bar">
           <div
-            className="kalshi-market-bar-fill"
-            style={{ width: animate ? `${homePct}%` : "0%" }}
+            className="kalshi-market-bar-fill kalshi-market-bar-fill--home"
+            style={{ width: animate ? `${barPct}%` : "0%" }}
+          />
+          <div
+            className="kalshi-market-bar-fill kalshi-market-bar-fill--away"
+            style={{ width: animate ? `${100 - barPct}%` : "0%" }}
           />
         </div>
-        <span
-          className={`kalshi-market-pct${awayPct > 50 ? " is-leading" : ""}`}
-        >
+        <span className="kalshi-market-pct kalshi-market-pct--away">
           {awayPct}%
         </span>
+        <div className="kalshi-market-team kalshi-market-team--away">
+          <span className="kalshi-market-team-name">{awayTeam}</span>
+          <span className="flag text-lg">{getFlag(awayTeam)}</span>
+        </div>
       </div>
       <p className="kalshi-market-via">via Kalshi</p>
     </div>

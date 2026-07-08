@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   fetchKalshiData,
-  matchKalshiGameOdds,
+  matchKalshiAdvanceOdds,
   type TournamentWinnerOdds,
 } from "@/lib/kalshi";
 import {
   footballDataMatchesUrl,
+  kalshiAdvanceRoundKey,
   stageLabel,
   TOURNAMENT_STAGE,
 } from "@/lib/tournament";
@@ -45,9 +46,8 @@ interface FootballDataResponse {
 }
 
 export interface MatchKalshiOdds {
-  homeWinPct: number | null;
-  awayWinPct: number | null;
-  drawPct: number | null;
+  homeAdvancePct: number | null;
+  awayAdvancePct: number | null;
 }
 
 export interface CleanedMatch {
@@ -124,14 +124,15 @@ export async function GET() {
   }
 
   const label = stageLabel();
+  const advanceRoundKey = kalshiAdvanceRoundKey();
 
   const [footballRes, kalshiResult] = await Promise.all([
     fetch(footballDataMatchesUrl(), {
       headers: { "X-Auth-Token": apiKey },
       cache: "no-store",
     }),
-    fetchKalshiData().catch(() => ({
-      gameOddsByEvent: new Map<string, Record<string, number>>(),
+    fetchKalshiData(advanceRoundKey).catch(() => ({
+      advanceOddsByTeam: new Map<string, number>(),
       tournamentWinners: [] as TournamentWinnerOdds[],
     })),
   ]);
@@ -144,7 +145,7 @@ export async function GET() {
   }
 
   const data: FootballDataResponse = await footballRes.json();
-  const { gameOddsByEvent, tournamentWinners } = kalshiResult;
+  const { advanceOddsByTeam, tournamentWinners } = kalshiResult;
 
   const matches: CleanedMatch[] = (data.matches ?? []).map((match) => {
     const { score, penalties, scoreDuration } = extractMatchScores(match);
@@ -161,7 +162,7 @@ export async function GET() {
       penalties,
       scoreDuration,
       stageLabel: label,
-      kalshi: matchKalshiGameOdds(homeTeam, awayTeam, gameOddsByEvent),
+      kalshi: matchKalshiAdvanceOdds(homeTeam, awayTeam, advanceOddsByTeam),
     };
   });
 

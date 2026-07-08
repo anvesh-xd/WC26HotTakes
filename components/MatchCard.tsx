@@ -23,9 +23,8 @@ export function isMatchLocked(status: MatchStatus): boolean {
 }
 
 export interface MatchKalshiOdds {
-  homeWinPct: number | null;
-  awayWinPct: number | null;
-  drawPct: number | null;
+  homeAdvancePct: number | null;
+  awayAdvancePct: number | null;
 }
 
 export interface Match {
@@ -223,8 +222,8 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
     !isFinished &&
     !isLive &&
     match.kalshi != null &&
-    (match.kalshi.homeWinPct ?? 0) > 0 &&
-    (match.kalshi.awayWinPct ?? 0) > 0;
+    (match.kalshi.homeAdvancePct ?? 0) > 0 &&
+    (match.kalshi.awayAdvancePct ?? 0) > 0;
 
   return (
     <div
@@ -338,8 +337,13 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
         </div>
       </div>
 
-      {showKalshiBar && match.kalshi && (
-        <KalshiMarketBar odds={match.kalshi} />
+      {showKalshiBar && match.kalshi && match.homeTeam && match.awayTeam && (
+        <KalshiMarketBar
+          homeTeam={match.homeTeam}
+          awayTeam={match.awayTeam}
+          homePct={match.kalshi.homeAdvancePct ?? 0}
+          awayPct={match.kalshi.awayAdvancePct ?? 0}
+        />
       )}
 
       {/* predictions, pens, hot take */}
@@ -412,9 +416,8 @@ export default memo(MatchCard, (prev, next) => {
     prev.match.penalties?.away === next.match.penalties?.away &&
     prev.match.scoreDuration === next.match.scoreDuration &&
     prev.match.stageLabel === next.match.stageLabel &&
-    prev.match.kalshi?.homeWinPct === next.match.kalshi?.homeWinPct &&
-    prev.match.kalshi?.awayWinPct === next.match.kalshi?.awayWinPct &&
-    prev.match.kalshi?.drawPct === next.match.kalshi?.drawPct &&
+    prev.match.kalshi?.homeAdvancePct === next.match.kalshi?.homeAdvancePct &&
+    prev.match.kalshi?.awayAdvancePct === next.match.kalshi?.awayAdvancePct &&
     prev.prediction?.home === next.prediction?.home &&
     prev.prediction?.away === next.prediction?.away &&
     prev.prediction?.hotTake === next.prediction?.hotTake &&

@@ -1,23 +1,10 @@
 const KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2";
-const GAME_SERIES = "KXWCGAME";
+const ADVANCE_SERIES = "KXWCROUND";
 const WINNER_SERIES = "KXMENWORLDCUP";
 
-/** football-data.org name → Kalshi KXWCGAME market suffix */
-const TEAM_TO_GAME_CODE: Record<string, string> = {
-  Argentina: "ARG",
-  Belgium: "BEL",
-  England: "ENG",
-  France: "FRA",
-  Morocco: "MAR",
-  Norway: "NOR",
-  Spain: "ESP",
-  Switzerland: "SUI",
-};
-
 export interface MatchKalshiOdds {
-  homeWinPct: number | null;
-  awayWinPct: number | null;
-  drawPct: number | null;
+  homeAdvancePct: number | null;
+  awayAdvancePct: number | null;
 }
 
 export interface TournamentWinnerOdds {
@@ -44,62 +31,36 @@ function priceToPct(market: KalshiMarket): number {
   return Math.round(parseFloat(raw) * 100);
 }
 
-function teamGameCode(name: string | null): string | null {
-  if (!name) return null;
-  return TEAM_TO_GAME_CODE[name] ?? null;
-}
+function buildAdvanceOddsByTeam(
+  markets: KalshiMarket[],
+  roundKey: string
+): Map<string, number> {
+  const prefix = `KXWCROUND-${roundKey}-`;
+  const byTeam = new Map<string, number>();
 
-/** e.g. KXWCGAME-26JUL09FRAMAR → { home: "FRA", away: "MAR" } */
-function parseGameEventTeams(eventTicker: string): {
-  home: string;
-  away: string;
-} | null {
-  const body = eventTicker.replace(/^KXWCGAME-/, "");
-  const teamsPart = body.slice(7);
-  if (teamsPart.length !== 6) return null;
-  return { home: teamsPart.slice(0, 3), away: teamsPart.slice(3) };
-}
-
-function buildGameOddsByEvent(
-  markets: KalshiMarket[]
-): Map<string, Record<string, number>> {
-  const byEvent = new Map<string, Record<string, number>>();
   for (const market of markets) {
-    const code = market.ticker.split("-").pop();
-    if (!code) continue;
-    const existing = byEvent.get(market.event_ticker) ?? {};
-    existing[code] = priceToPct(market);
-    byEvent.set(market.event_ticker, existing);
+    if (!market.ticker.startsWith(prefix)) continue;
+    const team = market.yes_sub_title?.trim();
+    if (!team) continue;
+    byTeam.set(team, priceToPct(market));
   }
-  return byEvent;
+
+  return byTeam;
 }
 
-export function matchKalshiGameOdds(
+export function matchKalshiAdvanceOdds(
   homeTeam: string | null,
   awayTeam: string | null,
-  oddsByEvent: Map<string, Record<string, number>>
+  advanceOddsByTeam: Map<string, number>
 ): MatchKalshiOdds | null {
-  const homeCode = teamGameCode(homeTeam);
-  const awayCode = teamGameCode(awayTeam);
-  if (!homeCode || !awayCode) return null;
+  if (!homeTeam || !awayTeam) return null;
 
-  for (const [eventTicker, odds] of oddsByEvent) {
-    const parsed = parseGameEventTeams(eventTicker);
-    if (!parsed) continue;
+  const homeAdvancePct = advanceOddsByTeam.get(homeTeam) ?? null;
+  const awayAdvancePct = advanceOddsByTeam.get(awayTeam) ?? null;
 
-    const teamsMatch =
-      (parsed.home === homeCode && parsed.away === awayCode) ||
-      (parsed.home === awayCode && parsed.away === homeCode);
-    if (!teamsMatch) continue;
+  if (homeAdvancePct == null && awayAdvancePct == null) return null;
 
-    return {
-      homeWinPct: odds[homeCode] ?? null,
-      awayWinPct: odds[awayCode] ?? null,
-      drawPct: odds.TIE ?? null,
-    };
-  }
-
-  return null;
+  return { homeAdvancePct, awayAdvancePct };
 }
 
 async function fetchKalshiMarkets(seriesTicker: string): Promise<KalshiMarket[]> {
@@ -110,16 +71,18 @@ async function fetchKalshiMarkets(seriesTicker: string): Promise<KalshiMarket[]>
   return data.markets ?? [];
 }
 
-export async function fetchKalshiData(): Promise<{
-  gameOddsByEvent: Map<string, Record<string, number>>;
+export async function fetchKalshiData(advanceRoundKey: string | null): Promise<{
+  advanceOddsByTeam: Map<string, number>;
   tournamentWinners: TournamentWinnerOdds[];
 }> {
-  const [gameMarkets, winnerMarkets] = await Promise.all([
-    fetchKalshiMarkets(GAME_SERIES),
+  const [advanceMarkets, winnerMarkets] = await Promise.all([
+    advanceRoundKey ? fetchKalshiMarkets(ADVANCE_SERIES) : Promise.resolve([]),
     fetchKalshiMarkets(WINNER_SERIES),
   ]);
 
-  const gameOddsByEvent = buildGameOddsByEvent(gameMarkets);
+  const advanceOddsByTeam = advanceRoundKey
+    ? buildAdvanceOddsByTeam(advanceMarkets, advanceRoundKey)
+    : new Map<string, number>();
 
   const tournamentWinners = winnerMarkets
     .map((market) => ({
@@ -129,5 +92,5 @@ export async function fetchKalshiData(): Promise<{
     .filter((entry) => entry.winPct > 0)
     .sort((a, b) => b.winPct - a.winPct);
 
-  return { gameOddsByEvent, tournamentWinners };
+  return { advanceOddsByTeam, tournamentWinners };
 }

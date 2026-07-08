@@ -28,3 +28,17 @@ export function footballDataMatchesUrl(
 ): string {
   return `https://api.football-data.org/v4/competitions/2000/matches?stage=${stage}`;
 }
+
+/** Kalshi KXWCROUND ticker segment for "to advance" from the current stage */
+export function kalshiAdvanceRoundKey(
+  stage: FootballDataStage = TOURNAMENT_STAGE
+): string | null {
+  switch (stage) {
+    case "QUARTER_FINALS":
+      return "26SEMI";
+    case "SEMI_FINALS":
+      return "26FINAL";
+    default:
+      return null;
+  }
+}
