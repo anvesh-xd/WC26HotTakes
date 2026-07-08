@@ -25,6 +25,9 @@
   --pitch: #e8431f; /* accent alias used across components */
   --cobalt: #15485c;
   --gold: #c8881a;
+  --green: #3ddb82;
+  --text-secondary: #6f6555;
+  --text-muted: #8a8070;
   --paper-light: #fff7ec;
   --border: rgba(27, 26, 23, 0.16);
   --ink-hard: #1b1a17;
@@ -382,11 +385,80 @@ input[type="number"] {
   line-height: 1.2;
 }
 
-.fixture-team-wrap {
+/* ---- Kalshi market odds bar ---------------------------------------- */
+
+.kalshi-market {
+  margin-top: 0.85rem;
+}
+
+.kalshi-market-label {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.kalshi-market-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.kalshi-market-pct {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.kalshi-market-pct:first-child {
+  text-align: left;
+}
+
+.kalshi-market-pct:last-child {
+  text-align: right;
+}
+
+.kalshi-market-pct.is-leading {
+  color: var(--green);
+}
+
+.kalshi-market-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(27, 26, 23, 0.08);
+  overflow: hidden;
+  transition: filter 0.2s ease;
+}
+
+.kalshi-market:hover .kalshi-market-bar {
+  filter: brightness(1.15);
+}
+
+.kalshi-market-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(
+    90deg,
+    var(--green) 0%,
+    rgba(61, 219, 130, 0.4) 100%
+  );
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.kalshi-market-via {
+  margin: 4px 0 0;
+  text-align: right;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  line-height: 1;
 }
 
 .kalshi-odds {

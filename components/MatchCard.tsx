@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import KalshiMarketBar from "@/components/KalshiMarketBar";
 import { trackFirstPredictionOnce } from "@/lib/analytics";
 import { getFlag } from "@/lib/flags";
 import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
@@ -79,11 +80,6 @@ function kickoffTime(utcDate: string): string {
 
 function sanitize(raw: string): string {
   return raw.replace(/[^0-9]/g, "").slice(0, 2);
-}
-
-function formatKalshiPct(pct: number | null | undefined): string | null {
-  if (pct == null || pct <= 0) return null;
-  return `${pct}%`;
 }
 
 function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
@@ -223,9 +219,12 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
   const showFooter =
     !isLocked || (isFinished && (prediction != null || hasPens));
 
-  const homeKalshi = formatKalshiPct(match.kalshi?.homeWinPct);
-  const awayKalshi = formatKalshiPct(match.kalshi?.awayWinPct);
-  const drawKalshi = formatKalshiPct(match.kalshi?.drawPct);
+  const showKalshiBar =
+    !isFinished &&
+    !isLive &&
+    match.kalshi != null &&
+    (match.kalshi.homeWinPct ?? 0) > 0 &&
+    (match.kalshi.awayWinPct ?? 0) > 0;
 
   return (
     <div
@@ -270,14 +269,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
             {winner === "home" ? "✓" : ""}
           </span>
           <span className="flag text-2xl">{getFlag(match.homeTeam)}</span>
-          <div className="fixture-team-wrap min-w-0">
-            <span className="fixture-team">{match.homeTeam ?? "TBD"}</span>
-            {homeKalshi && (
-              <span className="kalshi-odds" aria-label={`Kalshi win odds ${homeKalshi}`}>
-                {homeKalshi}
-              </span>
-            )}
-          </div>
+          <span className="fixture-team">{match.homeTeam ?? "TBD"}</span>
           {isLocked ? (
             <span
               className="score-result-sm"
@@ -315,14 +307,7 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
             {winner === "away" ? "✓" : ""}
           </span>
           <span className="flag text-2xl">{getFlag(match.awayTeam)}</span>
-          <div className="fixture-team-wrap min-w-0">
-            <span className="fixture-team">{match.awayTeam ?? "TBD"}</span>
-            {awayKalshi && (
-              <span className="kalshi-odds" aria-label={`Kalshi win odds ${awayKalshi}`}>
-                {awayKalshi}
-              </span>
-            )}
-          </div>
+          <span className="fixture-team">{match.awayTeam ?? "TBD"}</span>
           {isLocked ? (
             <span
               className="score-result-sm"
@@ -353,13 +338,8 @@ function MatchCard({ match, prediction, onPredict }: MatchCardProps) {
         </div>
       </div>
 
-      {drawKalshi && (
-        <p className="meta mt-2 text-right text-[var(--muted)]">
-          Draw {drawKalshi}
-          <span className="ml-1 text-[0.6rem] uppercase tracking-wide text-[var(--cobalt)]">
-            · Kalshi
-          </span>
-        </p>
+      {showKalshiBar && match.kalshi && (
+        <KalshiMarketBar odds={match.kalshi} />
       )}
 
       {/* predictions, pens, hot take */}
