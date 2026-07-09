@@ -65,29 +65,25 @@ function ShareKalshiAdvanceBar({
   const homeCode = teamAbbrev(homeTeam);
   const awayCode = teamAbbrev(awayTeam);
   const labelSize = compact ? "7px" : "8px";
-  const codeSize = compact ? 8 : 9;
-  const pctSize = compact ? 9 : 10;
+  const codeSize = compact ? "8px" : "9px";
+  const pctSize = compact ? "9px" : "10px";
   const viaSize = compact ? "6px" : "7px";
+  const gap = compact ? 3 : 4;
+  const barWidth = compact ? 72 : 96;
 
-  // SVG row: html2canvas mis-renders flex vertical alignment and heavy mono
-  // weights, but paints SVG text + rects at exact coordinates reliably.
-  const svgW = compact ? 176 : 208;
-  const svgH = compact ? 12 : 14;
-  const midY = svgH / 2;
-  const barH = 4;
-  const barY = (svgH - barH) / 2;
-  const barX = compact ? 38 : 46;
-  const barW = compact ? 68 : 86;
-  const homeBarW = (barPct / 100) * barW;
-  const barR = barH / 2;
-  const clipId = `kalshi-bar-${homeCode}-${awayCode}`;
-
-  const svgText = {
-    dominantBaseline: "central" as const,
-    alignmentBaseline: "middle" as const,
-    fontFamily: "DM Mono, ui-monospace, monospace",
-    fontWeight: 500,
-  };
+  const textStyle = (color: string, fontSize: string, marginLeft: number) =>
+    ({
+      display: "inline-block",
+      verticalAlign: "middle",
+      marginLeft,
+      fontFamily: MONO,
+      fontSize,
+      fontWeight: 500,
+      letterSpacing: "0.04em",
+      fontVariantNumeric: "tabular-nums",
+      color,
+      lineHeight: 1,
+    }) as const;
 
   return (
     <div style={{ marginTop: compact ? "8px" : "10px" }}>
@@ -105,90 +101,50 @@ function ShareKalshiAdvanceBar({
       >
         To Advance
       </p>
-      <svg
-        width="100%"
-        height={svgH}
-        viewBox={`0 0 ${svgW} ${svgH}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`To advance: ${homeCode} ${homePct}%, ${awayCode} ${awayPct}%`}
+      <div
         style={{
-          display: "block",
-          maxWidth: compact ? 196 : 232,
-          margin: "0 auto",
-          overflow: "visible",
+          textAlign: "center",
+          fontSize: 0,
+          lineHeight: `${compact ? 10 : 12}px`,
         }}
       >
-        <text
-          x={compact ? 10 : 12}
-          y={midY}
-          textAnchor="middle"
-          fontSize={codeSize}
-          fill={COLORS.cobalt}
-          {...svgText}
+        <span style={textStyle(COLORS.cobalt, codeSize, 0)}>{homeCode}</span>
+        <span style={textStyle(COLORS.cobalt, pctSize, gap)}>{homePct}%</span>
+        <span
+          style={{
+            display: "inline-block",
+            verticalAlign: "middle",
+            marginLeft: gap,
+            width: barWidth,
+            height: "4px",
+            borderRadius: "100px",
+            overflow: "hidden",
+            backgroundColor: "rgba(27, 26, 23, 0.08)",
+            fontSize: 0,
+          }}
         >
-          {homeCode}
-        </text>
-        <text
-          x={compact ? 26 : 32}
-          y={midY}
-          textAnchor="middle"
-          fontSize={pctSize}
-          fill={COLORS.cobalt}
-          {...svgText}
-        >
-          {homePct}%
-        </text>
-
-        <rect
-          x={barX}
-          y={barY}
-          width={barW}
-          height={barH}
-          rx={barR}
-          fill="rgba(27, 26, 23, 0.08)"
-        />
-        <clipPath id={clipId}>
-          <rect x={barX} y={barY} width={barW} height={barH} rx={barR} />
-        </clipPath>
-        <g clipPath={`url(#${clipId})`}>
-          <rect
-            x={barX}
-            y={barY}
-            width={homeBarW}
-            height={barH}
-            fill={COLORS.cobalt}
+          <span
+            style={{
+              display: "inline-block",
+              width: `${barPct}%`,
+              height: "4px",
+              backgroundColor: COLORS.cobalt,
+              verticalAlign: "top",
+            }}
           />
-          <rect
-            x={barX + homeBarW}
-            y={barY}
-            width={barW - homeBarW}
-            height={barH}
-            fill={COLORS.gold}
+          <span
+            style={{
+              display: "inline-block",
+              width: `${100 - barPct}%`,
+              height: "4px",
+              backgroundColor: COLORS.gold,
+              verticalAlign: "top",
+            }}
           />
-        </g>
-
-        <text
-          x={barX + barW + (compact ? 14 : 16)}
-          y={midY}
-          textAnchor="middle"
-          fontSize={pctSize}
-          fill={COLORS.gold}
-          {...svgText}
-        >
-          {awayPct}%
-        </text>
-        <text
-          x={barX + barW + (compact ? 30 : 36)}
-          y={midY}
-          textAnchor="middle"
-          fontSize={codeSize}
-          fill={COLORS.gold}
-          {...svgText}
-        >
-          {awayCode}
-        </text>
-      </svg>
+        </span>
+        <span style={textStyle(COLORS.gold, pctSize, gap)}>{awayPct}%</span>
+        <span style={textStyle(COLORS.gold, codeSize, gap)}>{awayCode}</span>
+      </div>
       <p
         style={{
           margin: "5px 0 0",
