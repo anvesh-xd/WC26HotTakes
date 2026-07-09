@@ -67,8 +67,8 @@ function ShareKalshiAdvanceBar({
   const labelSize = compact ? "7px" : "8px";
   const codeSize = compact ? "8px" : "9px";
   const pctSize = compact ? "9px" : "10px";
-  const viaSize = compact ? "6px" : "7px";
   const gap = compact ? 3 : 4;
+  const barHeight = compact ? "4px" : "5px";
 
   const codeStyle = (color: string) =>
     ({
@@ -107,72 +107,62 @@ function ShareKalshiAdvanceBar({
         To Advance
       </p>
 
-      <div
-        style={{
-          width: "100%",
-          height: compact ? "4px" : "5px",
-          borderRadius: "100px",
-          overflow: "hidden",
-          backgroundColor: "rgba(27, 26, 23, 0.08)",
-          fontSize: 0,
-        }}
-      >
-        <span
-          style={{
-            display: "inline-block",
-            width: `${barPct}%`,
-            height: compact ? "4px" : "5px",
-            backgroundColor: COLORS.cobalt,
-            verticalAlign: "top",
-          }}
-        />
-        <span
-          style={{
-            display: "inline-block",
-            width: `${100 - barPct}%`,
-            height: compact ? "4px" : "5px",
-            backgroundColor: COLORS.gold,
-            verticalAlign: "top",
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: `${gap}px`,
-          marginTop: compact ? "4px" : "5px",
-        }}
-      >
-        <div style={{ display: "flex", gap: `${gap}px`, alignItems: "baseline" }}>
-          <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
-          <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
-        </div>
+      <div style={{ width: "50%", margin: "0 auto" }}>
         <div
           style={{
-            display: "flex",
-            gap: `${gap}px`,
-            alignItems: "baseline",
-            justifyContent: "flex-end",
+            width: "100%",
+            height: barHeight,
+            borderRadius: "100px",
+            overflow: "hidden",
+            backgroundColor: "rgba(27, 26, 23, 0.08)",
+            fontSize: 0,
           }}
         >
-          <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
-          <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
+          <span
+            style={{
+              display: "inline-block",
+              width: `${barPct}%`,
+              height: barHeight,
+              backgroundColor: COLORS.cobalt,
+              verticalAlign: "top",
+            }}
+          />
+          <span
+            style={{
+              display: "inline-block",
+              width: `${100 - barPct}%`,
+              height: barHeight,
+              backgroundColor: COLORS.gold,
+              verticalAlign: "top",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: `${gap}px`,
+            marginTop: compact ? "4px" : "5px",
+          }}
+        >
+          <div style={{ display: "flex", gap: `${gap}px`, alignItems: "baseline" }}>
+            <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
+            <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: `${gap}px`,
+              alignItems: "baseline",
+              justifyContent: "flex-end",
+            }}
+          >
+            <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
+            <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
+          </div>
         </div>
       </div>
-
-      <p
-        style={{
-          margin: compact ? "4px 0 0" : "5px 0 0",
-          textAlign: "center",
-          fontSize: viaSize,
-          color: COLORS.muted,
-          lineHeight: 1.2,
-        }}
-      >
-        via Kalshi
-      </p>
     </div>
   );
 }
@@ -428,6 +418,19 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
     ? [predicted.slice(0, splitAt), predicted.slice(splitAt)]
     : [predicted];
 
+  const showKalshiFooter = predicted.some((match) => {
+    const homeAdvance = match.kalshi?.homeAdvancePct ?? 0;
+    const awayAdvance = match.kalshi?.awayAdvancePct ?? 0;
+    return (
+      match.status !== "FINISHED" &&
+      !isMatchLive(match.status) &&
+      homeAdvance > 0 &&
+      awayAdvance > 0 &&
+      match.homeTeam &&
+      match.awayTeam
+    );
+  });
+
   return (
     <div
       ref={ref}
@@ -568,6 +571,21 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
         >
           {SITE_URL}
         </span>
+        {showKalshiFooter && (
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: useTwoColumns ? "9px" : "10px",
+              fontWeight: 500,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: COLORS.muted,
+              lineHeight: 1.2,
+            }}
+          >
+            Advance odds via Kalshi
+          </p>
+        )}
       </div>
     </div>
   );
