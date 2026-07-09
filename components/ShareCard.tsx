@@ -68,21 +68,27 @@ function ShareKalshiAdvanceBar({
   const codeSize = compact ? "8px" : "9px";
   const pctSize = compact ? "9px" : "10px";
   const viaSize = compact ? "6px" : "7px";
-  const gap = compact ? 3 : 4;
-  const barWidth = compact ? 72 : 96;
 
-  const textStyle = (color: string, fontSize: string, marginLeft: number) =>
+  const codeStyle = (color: string) =>
     ({
-      display: "inline-block",
-      verticalAlign: "middle",
-      marginLeft,
       fontFamily: MONO,
-      fontSize,
+      fontSize: codeSize,
       fontWeight: 500,
       letterSpacing: "0.04em",
+      color,
+      lineHeight: 1.15,
+      textAlign: "center",
+    }) as const;
+
+  const pctStyle = (color: string) =>
+    ({
+      fontFamily: MONO,
+      fontSize: pctSize,
+      fontWeight: 500,
       fontVariantNumeric: "tabular-nums",
       color,
-      lineHeight: 1,
+      lineHeight: 1.15,
+      textAlign: "center",
     }) as const;
 
   return (
@@ -103,19 +109,20 @@ function ShareKalshiAdvanceBar({
       </p>
       <div
         style={{
-          textAlign: "center",
-          fontSize: 0,
-          lineHeight: `${compact ? 10 : 12}px`,
+          display: "grid",
+          gridTemplateColumns: "auto auto 1fr auto auto",
+          alignItems: "center",
+          gap: compact ? "3px 4px" : "4px 6px",
+          margin: "0 auto",
+          maxWidth: compact ? "180px" : "220px",
         }}
       >
-        <span style={textStyle(COLORS.cobalt, codeSize, 0)}>{homeCode}</span>
-        <span style={textStyle(COLORS.cobalt, pctSize, gap)}>{homePct}%</span>
-        <span
+        <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
+        <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
+        <div
           style={{
-            display: "inline-block",
-            verticalAlign: "middle",
-            marginLeft: gap,
-            width: barWidth,
+            width: "100%",
+            minWidth: compact ? "48px" : "64px",
             height: "4px",
             borderRadius: "100px",
             overflow: "hidden",
@@ -141,9 +148,9 @@ function ShareKalshiAdvanceBar({
               verticalAlign: "top",
             }}
           />
-        </span>
-        <span style={textStyle(COLORS.gold, pctSize, gap)}>{awayPct}%</span>
-        <span style={textStyle(COLORS.gold, codeSize, gap)}>{awayCode}</span>
+        </div>
+        <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
+        <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
       </div>
       <p
         style={{
