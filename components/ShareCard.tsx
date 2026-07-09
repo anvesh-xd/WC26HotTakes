@@ -65,39 +65,29 @@ function ShareKalshiAdvanceBar({
   const homeCode = teamAbbrev(homeTeam);
   const awayCode = teamAbbrev(awayTeam);
   const labelSize = compact ? "7px" : "8px";
-  const codeSize = compact ? "8px" : "9px";
-  const pctSize = compact ? "9px" : "10px";
+  const codeSize = compact ? 8 : 9;
+  const pctSize = compact ? 9 : 10;
   const viaSize = compact ? "6px" : "7px";
-  const gap = compact ? 3 : 4;
-  const rowHeight = compact ? 10 : 11;
 
-  const codeStyle = (color: string) =>
-    ({
-      display: "inline-flex",
-      alignItems: "center",
-      fontFamily: MONO,
-      fontSize: codeSize,
-      fontWeight: 800,
-      letterSpacing: "0.04em",
-      color,
-      lineHeight: 1,
-      height: `${rowHeight}px`,
-      flexShrink: 0,
-    }) as const;
+  // SVG row: html2canvas mis-renders flex vertical alignment and heavy mono
+  // weights, but paints SVG text + rects at exact coordinates reliably.
+  const svgW = compact ? 176 : 208;
+  const svgH = compact ? 12 : 14;
+  const midY = svgH / 2;
+  const barH = 4;
+  const barY = (svgH - barH) / 2;
+  const barX = compact ? 38 : 46;
+  const barW = compact ? 68 : 86;
+  const homeBarW = (barPct / 100) * barW;
+  const barR = barH / 2;
+  const clipId = `kalshi-bar-${homeCode}-${awayCode}`;
 
-  const pctStyle = (color: string) =>
-    ({
-      display: "inline-flex",
-      alignItems: "center",
-      fontFamily: MONO,
-      fontSize: pctSize,
-      fontWeight: 800,
-      fontVariantNumeric: "tabular-nums",
-      color,
-      lineHeight: 1,
-      height: `${rowHeight}px`,
-      flexShrink: 0,
-    }) as const;
+  const svgText = {
+    dominantBaseline: "central" as const,
+    alignmentBaseline: "middle" as const,
+    fontFamily: "DM Mono, ui-monospace, monospace",
+    fontWeight: 500,
+  };
 
   return (
     <div style={{ marginTop: compact ? "8px" : "10px" }}>
@@ -115,56 +105,90 @@ function ShareKalshiAdvanceBar({
       >
         To Advance
       </p>
-      <div
+      <svg
+        width="100%"
+        height={svgH}
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`To advance: ${homeCode} ${homePct}%, ${awayCode} ${awayPct}%`}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: `${gap}px`,
-          height: `${rowHeight}px`,
+          display: "block",
+          maxWidth: compact ? 196 : 232,
+          margin: "0 auto",
+          overflow: "visible",
         }}
       >
-        <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
-        <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
-        <div
-          style={{
-            flex: "1 1 auto",
-            minWidth: compact ? "36px" : "48px",
-            maxWidth: compact ? "72px" : "96px",
-            height: `${rowHeight}px`,
-            display: "flex",
-            alignItems: "center",
-          }}
+        <text
+          x={compact ? 10 : 12}
+          y={midY}
+          textAnchor="middle"
+          fontSize={codeSize}
+          fill={COLORS.cobalt}
+          {...svgText}
         >
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              height: "4px",
-              borderRadius: "100px",
-              overflow: "hidden",
-              backgroundColor: "rgba(27, 26, 23, 0.08)",
-            }}
-          >
-            <div
-              style={{
-                width: `${barPct}%`,
-                height: "100%",
-                backgroundColor: COLORS.cobalt,
-              }}
-            />
-            <div
-              style={{
-                width: `${100 - barPct}%`,
-                height: "100%",
-                backgroundColor: COLORS.gold,
-              }}
-            />
-          </div>
-        </div>
-        <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
-        <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
-      </div>
+          {homeCode}
+        </text>
+        <text
+          x={compact ? 26 : 32}
+          y={midY}
+          textAnchor="middle"
+          fontSize={pctSize}
+          fill={COLORS.cobalt}
+          {...svgText}
+        >
+          {homePct}%
+        </text>
+
+        <rect
+          x={barX}
+          y={barY}
+          width={barW}
+          height={barH}
+          rx={barR}
+          fill="rgba(27, 26, 23, 0.08)"
+        />
+        <clipPath id={clipId}>
+          <rect x={barX} y={barY} width={barW} height={barH} rx={barR} />
+        </clipPath>
+        <g clipPath={`url(#${clipId})`}>
+          <rect
+            x={barX}
+            y={barY}
+            width={homeBarW}
+            height={barH}
+            fill={COLORS.cobalt}
+          />
+          <rect
+            x={barX + homeBarW}
+            y={barY}
+            width={barW - homeBarW}
+            height={barH}
+            fill={COLORS.gold}
+          />
+        </g>
+
+        <text
+          x={barX + barW + (compact ? 14 : 16)}
+          y={midY}
+          textAnchor="middle"
+          fontSize={pctSize}
+          fill={COLORS.gold}
+          {...svgText}
+        >
+          {awayPct}%
+        </text>
+        <text
+          x={barX + barW + (compact ? 30 : 36)}
+          y={midY}
+          textAnchor="middle"
+          fontSize={codeSize}
+          fill={COLORS.gold}
+          {...svgText}
+        >
+          {awayCode}
+        </text>
+      </svg>
       <p
         style={{
           margin: "5px 0 0",
