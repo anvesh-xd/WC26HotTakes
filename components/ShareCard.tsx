@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { getFlag } from "@/lib/flags";
+import { teamAbbrev } from "@/lib/kalshi";
 import { gradePrediction, matchWinner, type PredictionGrade } from "@/lib/scoring";
 import {
   isMatchLive,
@@ -45,6 +46,136 @@ const GRADE_LABEL: Record<PredictionGrade, string> = {
   outcome: "~ Correct Winner",
   wrong: "✗ Wrong",
 };
+
+function ShareKalshiAdvanceBar({
+  homeTeam,
+  awayTeam,
+  homePct,
+  awayPct,
+  compact,
+}: {
+  homeTeam: string;
+  awayTeam: string;
+  homePct: number;
+  awayPct: number;
+  compact?: boolean;
+}) {
+  const total = homePct + awayPct;
+  const barPct = total > 0 ? (homePct / total) * 100 : 50;
+  const homeCode = teamAbbrev(homeTeam);
+  const awayCode = teamAbbrev(awayTeam);
+  const labelSize = compact ? "7px" : "8px";
+  const codeSize = compact ? "8px" : "9px";
+  const pctSize = compact ? "9px" : "10px";
+  const viaSize = compact ? "6px" : "7px";
+  const gap = compact ? 3 : 4;
+
+  const codeStyle = (color: string) =>
+    ({
+      fontFamily: MONO,
+      fontSize: codeSize,
+      fontWeight: 500,
+      letterSpacing: "0.04em",
+      color,
+      lineHeight: 1.2,
+    }) as const;
+
+  const pctStyle = (color: string) =>
+    ({
+      fontFamily: MONO,
+      fontSize: pctSize,
+      fontWeight: 500,
+      fontVariantNumeric: "tabular-nums",
+      color,
+      lineHeight: 1.2,
+    }) as const;
+
+  return (
+    <div style={{ marginTop: compact ? "8px" : "10px" }}>
+      <p
+        style={{
+          margin: "0 0 5px",
+          textAlign: "center",
+          fontSize: labelSize,
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: COLORS.muted,
+          lineHeight: 1.2,
+        }}
+      >
+        To Advance
+      </p>
+
+      <div
+        style={{
+          width: "100%",
+          height: compact ? "4px" : "5px",
+          borderRadius: "100px",
+          overflow: "hidden",
+          backgroundColor: "rgba(27, 26, 23, 0.08)",
+          fontSize: 0,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            width: `${barPct}%`,
+            height: compact ? "4px" : "5px",
+            backgroundColor: COLORS.cobalt,
+            verticalAlign: "top",
+          }}
+        />
+        <span
+          style={{
+            display: "inline-block",
+            width: `${100 - barPct}%`,
+            height: compact ? "4px" : "5px",
+            backgroundColor: COLORS.gold,
+            verticalAlign: "top",
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: `${gap}px`,
+          marginTop: compact ? "4px" : "5px",
+        }}
+      >
+        <div style={{ display: "flex", gap: `${gap}px`, alignItems: "baseline" }}>
+          <span style={codeStyle(COLORS.cobalt)}>{homeCode}</span>
+          <span style={pctStyle(COLORS.cobalt)}>{homePct}%</span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: `${gap}px`,
+            alignItems: "baseline",
+            justifyContent: "flex-end",
+          }}
+        >
+          <span style={pctStyle(COLORS.gold)}>{awayPct}%</span>
+          <span style={codeStyle(COLORS.gold)}>{awayCode}</span>
+        </div>
+      </div>
+
+      <p
+        style={{
+          margin: compact ? "4px 0 0" : "5px 0 0",
+          textAlign: "center",
+          fontSize: viaSize,
+          color: COLORS.muted,
+          lineHeight: 1.2,
+        }}
+      >
+        via Kalshi
+      </p>
+    </div>
+  );
+}
 
 function MatchFixtureCard({
   match,
@@ -111,20 +242,6 @@ function MatchFixtureCard({
   const scoreSize = compact ? "18px" : "22px";
   const flagSize = compact ? "18px" : "20px";
   const cardPadding = compact ? "10px 12px" : "13px 18px";
-  const advanceSize = compact ? "7px" : "8px";
-  const viaSize = compact ? "6px" : "7px";
-
-  const advanceLineStyle = (color: string) =>
-    ({
-      display: "block",
-      marginTop: compact ? "2px" : "3px",
-      fontFamily: MONO,
-      fontSize: advanceSize,
-      fontWeight: 500,
-      fontVariantNumeric: "tabular-nums",
-      color,
-      lineHeight: 1.2,
-    }) as const;
 
   const rowStyle = {
     display: "grid",
@@ -167,11 +284,6 @@ function MatchFixtureCard({
           }}
         >
           {match.homeTeam ?? "TBD"}
-          {showKalshiAdvance && (
-            <span style={advanceLineStyle(COLORS.cobalt)}>
-              {homeAdvance}% to advance
-            </span>
-          )}
         </span>
         <span
           style={{
@@ -208,11 +320,6 @@ function MatchFixtureCard({
           }}
         >
           {match.awayTeam ?? "TBD"}
-          {showKalshiAdvance && (
-            <span style={advanceLineStyle(COLORS.gold)}>
-              {awayAdvance}% to advance
-            </span>
-          )}
         </span>
         <span
           style={{
@@ -227,17 +334,13 @@ function MatchFixtureCard({
       </div>
 
       {showKalshiAdvance && (
-        <p
-          style={{
-            margin: compact ? "4px 0 0" : "5px 0 0",
-            textAlign: "center",
-            fontSize: viaSize,
-            color: COLORS.muted,
-            lineHeight: 1.2,
-          }}
-        >
-          via Kalshi
-        </p>
+        <ShareKalshiAdvanceBar
+          homeTeam={match.homeTeam!}
+          awayTeam={match.awayTeam!}
+          homePct={homeAdvance}
+          awayPct={awayAdvance}
+          compact={compact}
+        />
       )}
 
       {showFooter && (
