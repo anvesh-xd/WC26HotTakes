@@ -90,16 +90,13 @@ export default function Home() {
             {CHAMPION}
           </h1>
         </div>
-        <hr className="masthead-rule mx-auto max-w-3xl" />
       </section>
 
       {/* Individual awards */}
       <section className="relative w-full">
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
-          <div className="mb-6 flex items-center gap-4">
-            <span className="rule-line" />
+          <div className="mb-6 flex items-center justify-center gap-4">
             <span className="date-label">Individual Awards</span>
-            <span className="rule-line" />
           </div>
 
           <ul className="awards-list">
@@ -115,16 +112,13 @@ export default function Home() {
             ))}
           </ul>
         </div>
-        <hr className="masthead-rule mx-auto max-w-3xl" />
       </section>
 
       <div className="mx-auto w-full max-w-3xl px-4">
         {/* Tournament stats */}
-        <section className="py-12">
-          <div className="mb-6 flex items-center gap-4">
-            <span className="rule-line" />
+        <section className="pb-12">
+          <div className="mb-6 flex items-center justify-center gap-4">
             <span className="date-label">The Numbers</span>
-            <span className="rule-line" />
           </div>
 
           <div className="stats-grid">

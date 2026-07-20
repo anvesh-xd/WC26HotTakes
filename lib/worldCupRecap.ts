@@ -22,7 +22,6 @@ export const INDIVIDUAL_AWARDS: IndividualAward[] = [
   { award: "Golden Boot", winner: "Mbappé" },
   { award: "Golden Glove", winner: "Unai Simón" },
   { award: "Young Player Award", winner: "Pau Cubarsí" },
-  { award: "Fair Play Award", winner: "The Netherlands" },
 ];
 
 export const SHARECARDS_SHARED = 185;
@@ -35,7 +34,7 @@ export interface RecapStat {
 
 export const RECAP_STATS: RecapStat[] = [
   { value: SHARECARDS_SHARED, label: "Sharecards Shared" },
-  { value: 271, label: "Goals Scored" },
+  { value: 309, label: "Total Goals Scored" },
 ];
 
 export interface TournamentMoment {
@@ -49,7 +48,7 @@ export const TOURNAMENT_MOMENTS: TournamentMoment[] = [
     round: "Group Stage",
     headline: "Underdogs rewrite the script",
     detail:
-      "Japan stunned Brazil 2–1 in Los Angeles, Morocco edged Portugal 1–0 in Toronto, and Canada knocked out Belgium 2–0 in Vancouver.",
+      "Spain’s only draw of the tournament came 0–0 with Cape Verde — every other match was a win. Curaçao held Ecuador 0–0, DR Congo drew Portugal 1–1, New Zealand shared points with Iran 2–2, and Australia beat Turkey 2–0.",
   },
   {
     round: "Knockouts",
