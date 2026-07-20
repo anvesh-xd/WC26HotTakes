@@ -12,6 +12,19 @@ export const FINAL = {
 
 export const CHAMPION = "Spain" as const;
 
+export interface IndividualAward {
+  award: string;
+  winner: string;
+}
+
+export const INDIVIDUAL_AWARDS: IndividualAward[] = [
+  { award: "Golden Ball", winner: "Rodri" },
+  { award: "Golden Boot", winner: "Mbappé" },
+  { award: "Golden Glove", winner: "Unai Simón" },
+  { award: "Young Player Award", winner: "Pau Cubarsí" },
+  { award: "Fair Play Award", winner: "The Netherlands" },
+];
+
 export const SHARECARDS_SHARED = 185;
 
 export interface RecapStat {
@@ -22,9 +35,7 @@ export interface RecapStat {
 
 export const RECAP_STATS: RecapStat[] = [
   { value: SHARECARDS_SHARED, label: "Sharecards Shared" },
-  { value: 104, label: "Matches Played" },
   { value: 271, label: "Goals Scored" },
-  { value: 48, label: "Teams in the Field" },
 ];
 
 export interface TournamentMoment {
@@ -36,26 +47,26 @@ export interface TournamentMoment {
 export const TOURNAMENT_MOMENTS: TournamentMoment[] = [
   {
     round: "Group Stage",
-    headline: "48 nations, zero quiet nights",
+    headline: "Underdogs rewrite the script",
     detail:
-      "The expanded field delivered upsets from day one — favorites scraped through, underdogs punched tickets.",
+      "Japan stunned Brazil 2–1 in Los Angeles, Morocco edged Portugal 1–0 in Toronto, and Canada knocked out Belgium 2–0 in Vancouver.",
   },
   {
     round: "Knockouts",
-    headline: "Extra time became the default",
+    headline: "Extra time and spot kicks",
     detail:
-      "Twelve knockout ties needed extra time or penalties. Spain survived three of them.",
+      "Seven of thirty-two knockout matches went to extra time or penalties.",
   },
   {
     round: "Semi-finals",
-    headline: "Spain 2 – 1 France",
+    headline: "Two very different nights",
     detail:
-      "A late winner in Dallas sent La Roja to the final for the first time since 2010.",
+      "Spain dominated France end to end, while Argentina clawed back from behind to beat England.",
   },
   {
     round: "The Final",
     headline: "Spain 1 – 0 Argentina",
     detail:
-      "One moment of brilliance decided it. The trophy heads back to Madrid.",
+      "Argentina finished with zero shots on target. One goal was enough.",
   },
 ];

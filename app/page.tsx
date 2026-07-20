@@ -5,6 +5,7 @@ import { getFlag } from "@/lib/flags";
 import {
   CHAMPION,
   FINAL,
+  INDIVIDUAL_AWARDS,
   RECAP_STATS,
   TOURNAMENT_MOMENTS,
 } from "@/lib/worldCupRecap";
@@ -66,45 +67,53 @@ export default function Home() {
 
       {/* Champions hero */}
       <section className="relative w-full overflow-hidden">
-        <span className="watermark left-[-1rem] bottom-[-2rem] text-[11rem] sm:text-[16rem]">
+        <span className="watermark left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11rem] sm:text-[16rem]">
           26
         </span>
-        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start gap-10 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-14">
-          <div className="max-w-lg">
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-4 py-12 text-center sm:py-14">
+          <span
+            className="champion-seal reveal"
+            style={{ animationDelay: "0.05s" }}
+          >
+            Champions
+          </span>
+          <h1
+            className="display reveal mt-5 text-[3.25rem] sm:text-[5rem]"
+            style={{ animationDelay: "0.12s" }}
+          >
             <span
-              className="champion-seal reveal"
-              style={{ animationDelay: "0.05s" }}
+              className="flag mr-3 inline-block align-middle text-[0.55em]"
+              aria-hidden
             >
-              Champions
+              {getFlag(CHAMPION)}
             </span>
-            <h1
-              className="display reveal mt-5 text-[3.25rem] sm:text-[5rem]"
-              style={{ animationDelay: "0.12s" }}
-            >
-              <span className="flag mr-3 inline-block align-middle text-[0.55em]" aria-hidden>
-                {getFlag(CHAMPION)}
-              </span>
-              {CHAMPION}
-              <br />
-              <span className="text-[var(--flame)]">Wins It All</span>
-            </h1>
-            <p
-              className="reveal serif-it mt-4 text-lg text-[var(--muted)]"
-              style={{ animationDelay: "0.28s" }}
-            >
-              One goal. Ninety minutes. A fourth star for La Roja — and a
-              summer of hot takes stamped and shared.
-            </p>
+            {CHAMPION}
+          </h1>
+        </div>
+        <hr className="masthead-rule mx-auto max-w-3xl" />
+      </section>
+
+      {/* Individual awards */}
+      <section className="relative w-full">
+        <div className="mx-auto w-full max-w-3xl px-4 py-12">
+          <div className="mb-6 flex items-center gap-4">
+            <span className="rule-line" />
+            <span className="date-label">Individual Awards</span>
+            <span className="rule-line" />
           </div>
 
-          <div className="stat-circle shrink-0">
-            <span className="font-mono text-[2.75rem] font-medium leading-none text-[var(--flame)]">
-              <StatCounter value={RECAP_STATS[0].value} />
-            </span>
-            <span className="meta mt-1 max-w-[96px] text-center leading-tight">
-              {RECAP_STATS[0].label}
-            </span>
-          </div>
+          <ul className="awards-list">
+            {INDIVIDUAL_AWARDS.map((item, i) => (
+              <li
+                key={item.award}
+                className="award-row reveal"
+                style={{ animationDelay: `${0.08 + i * 0.06}s` }}
+              >
+                <span className="meta award-label">{item.award}</span>
+                <span className="display award-winner">{item.winner}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <hr className="masthead-rule mx-auto max-w-3xl" />
       </section>
@@ -171,6 +180,9 @@ export default function Home() {
           </p>
           <p className="serif-it mt-2 text-center text-[var(--muted)]">
             See you in 2030.
+          </p>
+          <p className="meta mt-4 text-center text-[var(--muted)]">
+            — Anvesh
           </p>
         </section>
       </div>
