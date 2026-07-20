@@ -35,9 +35,9 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "World Cup 2026 Hot Takes",
+  title: "World Cup 2026 — Spain Champions",
   description:
-    "Pick the score for every World Cup quarter-final. Stamp your card. Share it.",
+    "Spain are World Cup champions. Final: Spain 1 – 0 Argentina. Relive the numbers and the takes.",
 };
 
 export default function RootLayout({

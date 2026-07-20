@@ -1,307 +1,108 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MatchCard, {
-  isMatchLive,
-  type Match,
-} from "@/components/MatchCard";
-import NameInput from "@/components/NameInput";
-import ShareCard from "@/components/ShareCard";
 import StatCounter from "@/components/StatCounter";
-import TournamentWinnerOdds from "@/components/TournamentWinnerOdds";
-import { trackCardStamped } from "@/lib/analytics";
-import type { TournamentWinnerOdds as WinnerOdds } from "@/lib/kalshi";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-
-function dateLabel(utcDate: string): string {
-  return new Date(utcDate).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-interface DateGroup {
-  label: string;
-  matches: Match[];
-}
-
-function groupByDate(matches: Match[]): DateGroup[] {
-  const sorted = [...matches].sort(
-    (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime()
-  );
-
-  const groups: DateGroup[] = [];
-  for (const match of sorted) {
-    const label = dateLabel(match.utcDate);
-    const existing = groups[groups.length - 1];
-    if (existing && existing.label === label) {
-      existing.matches.push(match);
-    } else {
-      groups.push({ label, matches: [match] });
-    }
-  }
-  return groups;
-}
+import { getFlag } from "@/lib/flags";
+import {
+  CHAMPION,
+  FINAL,
+  RECAP_STATS,
+  TOURNAMENT_MOMENTS,
+} from "@/lib/worldCupRecap";
 
 export default function Home() {
-  const { name, setName, predictions, setPrediction } = useLocalStorage();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [tournamentWinners, setTournamentWinners] = useState<WinnerOdds[]>([]);
-  const [stageLabel, setStageLabel] = useState("Quarter-final");
-  const [status, setStatus] = useState<"loading" | "ready" | "error">(
-    "loading"
-  );
-  const [fetchStale, setFetchStale] = useState(false);
-  const matchesRef = useRef<Match[]>([]);
-
-  const handlePredict = useCallback(
-    (matchId: number, home: number, away: number, hotTake: string) => {
-      setPrediction(matchId, home, away, hotTake);
-    },
-    [setPrediction]
-  );
-
-  const MATCHES_POLL_IDLE_MS = 60_000;
-  const MATCHES_POLL_LIVE_MS = 20_000;
-  const POLL_RETRY_MS = 5_000;
-
-  useEffect(() => {
-    let active = true;
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
-
-    function pollIntervalMs() {
-      return matchesRef.current.some((m) => isMatchLive(m.status))
-        ? MATCHES_POLL_LIVE_MS
-        : MATCHES_POLL_IDLE_MS;
-    }
-
-    function schedulePoll() {
-      if (!active) return;
-      pollTimer = setTimeout(async () => {
-        await loadMatches(false);
-        schedulePoll();
-      }, pollIntervalMs());
-    }
-
-    async function loadMatches(isInitial: boolean) {
-      try {
-        const res = await fetch(`/api/matches?_=${Date.now()}`, {
-          cache: "no-store",
-          headers: { Pragma: "no-cache" },
-        });
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const data: {
-          matches: Match[];
-          tournamentWinners?: WinnerOdds[];
-          stageLabel?: string;
-        } = await res.json();
-        if (!active) return;
-        const next = data.matches ?? [];
-        matchesRef.current = next;
-        setMatches(next);
-        setTournamentWinners(data.tournamentWinners ?? []);
-        if (data.stageLabel) setStageLabel(data.stageLabel);
-        setFetchStale(false);
-        setStatus("ready");
-      } catch {
-        if (!active) return;
-        if (isInitial) {
-          setStatus("error");
-        } else if (matchesRef.current.length > 0) {
-          setFetchStale(true);
-          setTimeout(() => {
-            if (active) loadMatches(false);
-          }, POLL_RETRY_MS);
-        }
-      }
-    }
-
-    const refresh = () => loadMatches(false);
-
-    loadMatches(true).then(() => {
-      if (active) schedulePoll();
-    });
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) refresh();
-    };
-    const onFocus = () => refresh();
-
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pageshow", onPageShow);
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      active = false;
-      if (pollTimer) clearTimeout(pollTimer);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pageshow", onPageShow);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, []);
-
-  const groups = useMemo(() => groupByDate(matches), [matches]);
-  const predictionCount = Object.keys(predictions).length;
-  const hasPredictions = predictionCount > 0;
-
-  const shareRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
-
-  async function handleDownload() {
-    if (!shareRef.current) return;
-
-    // Blur any focused input so pending debounced saves flush before capture.
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    await new Promise((resolve) => setTimeout(resolve, 350));
-
-    setDownloading(true);
-    const el = shareRef.current;
-    const style = el.style;
-    const captureSnapshot = {
-      position: style.position,
-      left: style.left,
-      top: style.top,
-      visibility: style.visibility,
-      zIndex: style.zIndex,
-      opacity: style.opacity,
-      pointerEvents: style.pointerEvents,
-    };
-
-    try {
-      // html2canvas cannot paint visibility:hidden / opacity:0 nodes — keep the
-      // card fully visible but parked behind the page while layout is measured.
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      style.position = "fixed";
-      style.left = "0";
-      style.top = "0";
-      style.visibility = "visible";
-      style.opacity = "1";
-      style.zIndex = "-1";
-      style.pointerEvents = "none";
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-
-      const html2canvas = (await import("html2canvas")).default;
-      const isWide = el.offsetWidth > 700;
-      const canvas = await html2canvas(el, {
-        backgroundColor: "#F2E9D5",
-        scale: isWide ? 1.5 : 2,
-        useCORS: true,
-        logging: false,
-        width: el.offsetWidth,
-        height: el.offsetHeight,
-      });
-
-      const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
-      if (!blob) throw new Error("Could not generate image");
-
-      const file = new File([blob], "worldcup-picks.png", {
-        type: "image/png",
-      });
-
-      const sharePayload = {
-        files: [file],
-        title: "My World Cup 2026 Picks",
-        text: "My World Cup 2026 quarter-final predictions 🔮",
-      };
-
-      // Prefer native share on phones/tablets. Skip canShare when absent;
-      // on some devices canShare returns false for large PNGs even though
-      // share() still works.
-      const isMobileShare =
-        typeof navigator !== "undefined" &&
-        typeof navigator.share === "function" &&
-        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
-      if (isMobileShare) {
-        try {
-          await navigator.share(sharePayload);
-          trackCardStamped(predictionCount, "share");
-          return;
-        } catch (err) {
-          if ((err as Error)?.name === "AbortError") return;
-        }
-      } else if (
-        typeof navigator.share === "function" &&
-        (!navigator.canShare || navigator.canShare(sharePayload))
-      ) {
-        try {
-          await navigator.share(sharePayload);
-          trackCardStamped(predictionCount, "share");
-          return;
-        } catch (err) {
-          if ((err as Error)?.name === "AbortError") return;
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "worldcup-picks.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      trackCardStamped(predictionCount, "download");
-    } catch (err) {
-      console.error("Card export failed:", err);
-      alert("Sorry, the card couldn't be generated. Please try again.");
-    } finally {
-      Object.assign(style, captureSnapshot);
-      setDownloading(false);
-    }
-  }
-
   return (
-    <main className="min-h-full pb-32">
-      {/* hero / masthead */}
+    <main className="min-h-full pb-16">
+      {/* Final score banner */}
+      <section className="final-banner relative w-full overflow-hidden">
+        <span className="watermark right-[-1.5rem] top-[-2rem] text-[10rem] sm:text-[14rem]">
+          WC
+        </span>
+        <div className="relative z-10 mx-auto w-full max-w-3xl px-4 pt-10 pb-6 sm:pt-12">
+          <div
+            className="reveal flex items-center justify-between gap-3"
+            style={{ animationDelay: "0s" }}
+          >
+            <span className="kicker">★ FIFA World Cup 2026 · Final</span>
+            <span className="meta hidden sm:inline">{FINAL.dateLabel}</span>
+          </div>
+
+          <div
+            className="reveal final-scoreboard mt-8"
+            style={{ animationDelay: "0.1s" }}
+          >
+            <div className="final-side">
+              <span className="flag final-flag" aria-hidden>
+                {getFlag(FINAL.home)}
+              </span>
+              <span className="display final-team">{FINAL.home}</span>
+            </div>
+
+            <div className="final-score-block">
+              <div className="final-digits">
+                <span className="font-mono">{FINAL.homeScore}</span>
+                <span className="final-dash">–</span>
+                <span className="font-mono">{FINAL.awayScore}</span>
+              </div>
+              <span className="meta meta-accent mt-2">Full Time</span>
+            </div>
+
+            <div className="final-side">
+              <span className="flag final-flag" aria-hidden>
+                {getFlag(FINAL.away)}
+              </span>
+              <span className="display final-team">{FINAL.away}</span>
+            </div>
+          </div>
+
+          <p
+            className="reveal meta mt-6 text-center text-[var(--muted)]"
+            style={{ animationDelay: "0.22s" }}
+          >
+            {FINAL.venue}
+          </p>
+        </div>
+        <hr className="masthead-rule mx-auto max-w-3xl" />
+      </section>
+
+      {/* Champions hero */}
       <section className="relative w-full overflow-hidden">
-        <span className="watermark right-[-2rem] top-[-3rem] text-[12rem] sm:text-[18rem]">
+        <span className="watermark left-[-1rem] bottom-[-2rem] text-[11rem] sm:text-[16rem]">
           26
         </span>
-        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start gap-10 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-16">
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-start gap-10 px-4 py-12 sm:flex-row sm:items-end sm:justify-between sm:py-14">
           <div className="max-w-lg">
             <span
-              className="kicker reveal"
-              style={{ animationDelay: "0s" }}
+              className="champion-seal reveal"
+              style={{ animationDelay: "0.05s" }}
             >
-              ★ FIFA World Cup 2026
+              Champions
             </span>
             <h1
-              className="display reveal mt-5 text-[3rem] sm:text-[4.75rem]"
-              style={{ animationDelay: "0.08s" }}
+              className="display reveal mt-5 text-[3.25rem] sm:text-[5rem]"
+              style={{ animationDelay: "0.12s" }}
             >
-              Make Your
+              <span className="flag mr-3 inline-block align-middle text-[0.55em]" aria-hidden>
+                {getFlag(CHAMPION)}
+              </span>
+              {CHAMPION}
               <br />
-              <span className="text-[var(--flame)]">Predictions</span>
+              <span className="text-[var(--flame)]">Wins It All</span>
             </h1>
             <p
               className="reveal serif-it mt-4 text-lg text-[var(--muted)]"
-              style={{ animationDelay: "0.24s" }}
+              style={{ animationDelay: "0.28s" }}
             >
-              Pick the score for every {stageLabel.toLowerCase()} fixture. Stamp
-              your card. Share it.
+              One goal. Ninety minutes. A fourth star for La Roja — and a
+              summer of hot takes stamped and shared.
             </p>
           </div>
 
           <div className="stat-circle shrink-0">
             <span className="font-mono text-[2.75rem] font-medium leading-none text-[var(--flame)]">
-              <StatCounter value={predictionCount} />
+              <StatCounter value={RECAP_STATS[0].value} />
             </span>
-            <span className="meta mt-1 max-w-[84px] text-center leading-tight">
-              Picks Logged
+            <span className="meta mt-1 max-w-[96px] text-center leading-tight">
+              {RECAP_STATS[0].label}
             </span>
           </div>
         </div>
@@ -309,98 +110,70 @@ export default function Home() {
       </section>
 
       <div className="mx-auto w-full max-w-3xl px-4">
-        {/* name input */}
-        <div className="-mt-2 mb-10">
-          <NameInput value={name} onChange={setName} />
-        </div>
-
-        {/* feed states */}
-        {status === "loading" && (
-          <p className="meta py-8 text-center">Loading fixtures…</p>
-        )}
-
-        {status === "error" && (
-          <div className="match-card p-5">
-            <p className="text-lg font-bold">Couldn&apos;t load fixtures</p>
-            <p className="mt-1 text-[var(--muted)]">
-              Check that a valid{" "}
-              <code className="text-[var(--pitch)]">FOOTBALL_DATA_API_KEY</code>{" "}
-              is set in <code>.env.local</code>.
-            </p>
+        {/* Tournament stats */}
+        <section className="py-12">
+          <div className="mb-6 flex items-center gap-4">
+            <span className="rule-line" />
+            <span className="date-label">The Numbers</span>
+            <span className="rule-line" />
           </div>
-        )}
 
-        {status === "ready" && fetchStale && (
-          <p className="meta mb-6 text-center text-[var(--muted)]">
-            Couldn&apos;t refresh scores — showing last update. Retrying…
-          </p>
-        )}
-
-        {status === "ready" && groups.length === 0 && (
-          <p className="meta py-8 text-center">
-            No {stageLabel.toLowerCase()} fixtures available yet.
-          </p>
-        )}
-
-        {/* date groups */}
-        <div className="space-y-10">
-          {groups.map((group, i) => (
-            <section
-              key={group.label}
-              className="animate-fade-up"
-              style={{ animationDelay: `${i * 0.06}s` }}
-            >
-              <div className="mb-4 flex items-center gap-4">
-                <span className="rule-line" />
-                <span className="date-label">{group.label}</span>
-                <span className="rule-line" />
+          <div className="stats-grid">
+            {RECAP_STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                className="stat-tile reveal"
+                style={{ animationDelay: `${0.08 + i * 0.07}s` }}
+              >
+                <span className="font-mono text-[2.4rem] font-medium leading-none text-[var(--ink)] sm:text-[2.75rem]">
+                  <StatCounter value={stat.value} durationMs={900} />
+                  {stat.suffix ?? ""}
+                </span>
+                <span className="meta mt-3 text-center leading-tight">
+                  {stat.label}
+                </span>
               </div>
-              <div className="space-y-3">
-                {group.matches.map((match) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    prediction={predictions[String(match.id)]}
-                    onPredict={handlePredict}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
 
-        {status === "ready" && (
-          <TournamentWinnerOdds winners={tournamentWinners} />
-        )}
+        {/* Tournament story */}
+        <section className="pb-14">
+          <div className="mb-6 flex items-center gap-4">
+            <span className="rule-line" />
+            <span className="date-label">How It Unfolded</span>
+            <span className="rule-line" />
+          </div>
+
+          <ol className="moment-list">
+            {TOURNAMENT_MOMENTS.map((moment, i) => (
+              <li
+                key={moment.round}
+                className="moment-card reveal"
+                style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+              >
+                <span className="badge badge-final">{moment.round}</span>
+                <h2 className="display mt-3 text-[1.65rem] sm:text-[1.9rem]">
+                  {moment.headline}
+                </h2>
+                <p className="mt-2 text-[var(--muted)] leading-relaxed">
+                  {moment.detail}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Closing stamp */}
+        <section className="closing-stamp mb-8 reveal" style={{ animationDelay: "0.2s" }}>
+          <p className="display text-center text-[1.75rem] sm:text-[2.25rem]">
+            Thanks for the takes.
+          </p>
+          <p className="serif-it mt-2 text-center text-[var(--muted)]">
+            See you in 2030.
+          </p>
+        </section>
       </div>
-
-      {/* off-screen card captured by html2canvas — only mounted once the user
-          has predictions (it's a heavy, hidden subtree we don't want in the
-          initial paint for first-time visitors) */}
-      {hasPredictions && (
-        <ShareCard
-          ref={shareRef}
-          name={name}
-          matches={matches}
-          predictions={predictions}
-        />
-      )}
-
-      {/* sticky CTA */}
-      {hasPredictions && (
-        <div className="cta-bar fixed inset-x-0 bottom-0 z-20 border-t-2 border-[var(--ink)] bg-[var(--bg)] px-4 pb-5 pt-4">
-          <div className="mx-auto w-full max-w-[420px]">
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              className="cta-button w-full"
-            >
-              {downloading ? "Stamping…" : "Stamp My Card"}
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

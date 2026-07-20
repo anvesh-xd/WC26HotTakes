@@ -664,6 +664,160 @@ input[type="number"] {
   animation: revealUp 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
+/* ---- Post-cup final scoreboard ------------------------------------- */
+
+.final-banner {
+  background: linear-gradient(
+    180deg,
+    rgba(232, 67, 31, 0.08) 0%,
+    transparent 70%
+  );
+}
+
+.final-scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.final-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.final-flag {
+  font-size: 2.75rem;
+  filter: drop-shadow(2px 2px 0 rgba(27, 26, 23, 0.15));
+}
+
+.final-team {
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+
+.final-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 7.5rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-card);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.final-digits {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 2.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.final-dash {
+  color: var(--muted);
+  font-size: 1.75rem;
+  transform: translateY(-2px);
+}
+
+.champion-seal {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  transform: rotate(-1.6deg);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.35rem 1rem;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-card);
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) {
+  .stat-tile:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--flame);
+  }
+}
+
+.moment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.moment-card {
+  padding: 1.15rem 1.2rem 1.25rem;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-card);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.closing-stamp {
+  padding: 1.75rem 1.25rem;
+  border: 2px dashed var(--ink);
+  border-radius: var(--radius-card);
+  background: rgba(251, 246, 234, 0.65);
+}
+
+@media (min-width: 640px) {
+  .final-flag {
+    font-size: 3.25rem;
+  }
+
+  .final-team {
+    font-size: 1.75rem;
+  }
+
+  .final-digits {
+    font-size: 3.5rem;
+  }
+
+  .final-score-block {
+    min-width: 9rem;
+    padding: 1rem 1.35rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
